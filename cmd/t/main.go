@@ -7,7 +7,8 @@ import (
 )
 
 func main() {
-	agg := thespian.NewAggregator()
+	rep := thespian.NewReporter()
+	agg := thespian.NewAggregator(rep)
 
 	go func() {
 		for _ = range time.NewTicker(900 * time.Millisecond).C {

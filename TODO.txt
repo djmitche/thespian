@@ -1,4 +1,3 @@
-* Pass Handle to agent, as `self` attribute
 * Build monitor support similar to Erlang's
 * Code generation
 * Abstraction for channels, too

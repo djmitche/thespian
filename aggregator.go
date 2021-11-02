@@ -1,14 +1,22 @@
 package thespian
 
 import (
+	"fmt"
 	"log"
 	"time"
 )
 
-// lower-case name is the user-provided, internal struct
+// (naming things is hard)
+type Reporterer interface {
+	Report([]string)
+}
 
+// lower-case name is the user-provided, internal struct
 type aggregator struct {
 	AgentBase
+
+	// self reference
+	self *Aggregator
 
 	// *Chan are treated as message channels
 	incrementChan chan string
@@ -16,14 +24,17 @@ type aggregator struct {
 	// *Timer are treated as timers
 	flushTimer Timer
 
-	counts map[string]int
+	// instance vars
+	counts     map[string]int
+	reporterer Reporterer
 }
 
-func NewAggregator() *Aggregator {
+func NewAggregator(reporterer Reporterer) *Aggregator {
 	return aggregator{
 		AgentBase:     NewAgentBase(),
 		incrementChan: make(chan string, 5),
 		counts:        make(map[string]int),
+		reporterer:    reporterer,
 	}.spawn()
 }
 
@@ -44,9 +55,11 @@ func (a *aggregator) handleIncrement(name string) error {
 }
 
 func (a *aggregator) handleFlush(t time.Time) error {
+	lines := []string{}
 	for k, v := range a.counts {
-		log.Printf("flush: %s=%d", k, v)
+		lines = append(lines, fmt.Sprintf("%s=%d", k, v))
 	}
+	a.reporterer.Report(lines)
 	a.counts = make(map[string]int)
 	return nil
 }

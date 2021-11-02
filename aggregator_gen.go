@@ -40,7 +40,6 @@ func (a *aggregator) loop() {
 }
 
 func (a *aggregator) cleanup() {
-	close(a.incrementChan) // TODO: good idea?
 	a.flushTimer.Stop()
 }
 
