@@ -1,13 +1,15 @@
-package thespian
+package gentest
 
 import (
 	"log"
+
+	"github.com/djmitche/thespian"
 )
 
 // lower-case name is the user-provided, internal struct
 
 type reporter struct {
-	AgentBase
+	thespian.ActorBase
 
 	self *Reporter
 
@@ -17,7 +19,7 @@ type reporter struct {
 
 func NewReporter() *Reporter {
 	return reporter{
-		AgentBase:  NewAgentBase(),
+		ActorBase:  thespian.NewActorBase(),
 		reportChan: make(chan []string, 5),
 	}.spawn()
 }

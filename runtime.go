@@ -2,28 +2,29 @@ package thespian
 
 import "time"
 
-type AgentBase struct {
-	id       uint64
-	stopChan chan struct{}
+// TODO: it'd be nice to have these fields be private
+type ActorBase struct {
+	ID       uint64
+	StopChan chan struct{}
 }
 
-func NewAgentBase() AgentBase {
-	return AgentBase{
-		id:       13, // TODO
-		stopChan: make(chan struct{}, 5),
+func NewActorBase() ActorBase {
+	return ActorBase{
+		ID:       13, // TODO
+		StopChan: make(chan struct{}, 5),
 	}
 }
 
 // --- Timer
 
 type Timer struct {
-	c      *<-chan time.Time
+	C      *<-chan time.Time
 	ticker *time.Ticker
 }
 
 func (t *Timer) Tick(dur time.Duration) {
 	t.ticker = time.NewTicker(dur)
-	t.c = &t.ticker.C
+	t.C = &t.ticker.C
 }
 
 func (t *Timer) Stop() {
@@ -31,17 +32,17 @@ func (t *Timer) Stop() {
 		t.ticker.Stop()
 		t.ticker = nil
 	}
-	t.c = nil
+	t.C = nil
 }
 
 // --- default implementations
 
-func (a *AgentBase) handleStart() error {
+func (a *ActorBase) HandleStart() error {
 	// could be overridden by user impl
 	return nil
 }
 
-func (a *AgentBase) handleStop() error {
+func (a *ActorBase) HandleStop() error {
 	// could be overridden by user impl
 	return nil
 }

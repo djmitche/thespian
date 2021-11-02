@@ -1,9 +1,11 @@
-package thespian
+package gentest
 
 import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/djmitche/thespian"
 )
 
 // (naming things is hard)
@@ -13,7 +15,7 @@ type Reporterer interface {
 
 // lower-case name is the user-provided, internal struct
 type aggregator struct {
-	AgentBase
+	thespian.ActorBase
 
 	// self reference
 	self *Aggregator
@@ -22,7 +24,7 @@ type aggregator struct {
 	incrementChan chan string
 
 	// *Timer are treated as timers
-	flushTimer Timer
+	flushTimer thespian.Timer
 
 	// instance vars
 	counts     map[string]int
@@ -31,14 +33,14 @@ type aggregator struct {
 
 func NewAggregator(reporterer Reporterer) *Aggregator {
 	return aggregator{
-		AgentBase:     NewAgentBase(),
+		ActorBase:     thespian.NewActorBase(),
 		incrementChan: make(chan string, 5),
 		counts:        make(map[string]int),
 		reporterer:    reporterer,
 	}.spawn()
 }
 
-func (a *aggregator) handleStart() error {
+func (a *aggregator) HandleStart() error {
 	log.Printf("start")
 	a.flushTimer.Tick(2 * time.Second)
 	return nil
