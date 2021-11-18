@@ -28,88 +28,28 @@ Want:
 
 ## Tasks
 
-* a way to test this with unit tests and not a program
+* figure out how to sub-template based on mbox kind
 * generate from thespian.yml (or toml or something) in the package dir, to
   avoid parsing go at all
+  * parsing go leads to weird needs to run the script twice
   * actor mailboxes should give kind, (for message-based) mailbox type name, message type
     * some mailbox type names are predefined (e.g., Timer)
   * (can't always refer to types in other packages as they may not include .yml)
+* builder pattern for actors
+  * but keep the Rx fields in the user-defined struct, as they can have
+    methods (settings for ticker or timer, enable/disable for channels)
+  * FooBuilder { foo, IncrMailbox, .. } - mailboxes set to enable MPMC or
+    initial settings
+  * FooBuilder.spawn _copies_ foo, sets up, returns Foo
+* a way to test this with unit tests and not a program
 
 Misc:
 * copy the private struct in `spawn` so that callers *cannot* maintain a
   reference to it
 * move some types to internal/
 * allow mailbox types not in the same package (still need info on their type)
-* Receiver -> Rx, Sender -> Tx
 
 Later:
 * allow build flags for generation
 * use something with fewer deps than cobra (gRPC?!?)
 
-# Example
-
-type Foo struct {
-	name    string
-	samples []int
-}
-
-/* user:
-FooMailbox:
-  kind: simple
-  messageType: Foo
-*/
-
-type FooMailbox struct { // gen
-}
-
-type FooSender struct { // gen
-	c chan<- Foo
-}
-
-type FooReceiver struct { // gen
-	c <-chan Foo
-}
-
-type harrisonFord struct { // user
-	fooMailbox FooReceiver
-	names      []string
-}
-
-type harrisonFordSpawner struct { // gen
-	fooMailbox FooMailbox
-	names      []string
-}
-
-func (s harrisonFordSpawner) spawn(rt *Runtime) *HarrisonFord { // gen
-	return nil // automatically creates a private harrisonFord and a HarrisonFord
-}
-
-func NewHarrisonFord(rt *Runtime, names []string) *HarrisonFord {
-	return harrisonFordSpawner{
-		names: names,
-		// can set xxMailbox here if multi-consumer is desired
-	}.spawn(rt)
-}
-
-func (a *harrisonFord) HandleFoo(m Foo) { // user
-	// ...
-}
-
-func (a *harrisonFord) loop() { // gen
-	for {
-		select {
-		// generated snippet:
-		case m := <-a.fooMailbox.c:
-			a.HandleFoo(m)
-			// ...
-		}
-	}
-}
-
-type HarrisonFord struct { // gen
-	fooMailbox FooSender
-}
-
-func (a *HarrisonFord) Foo(m Foo) { // gen
-	a.fooMailbox.c <- m
-}
