@@ -15,8 +15,8 @@ func main() {
 	go func() {
 		i := 0
 		for range time.NewTicker(900 * time.Millisecond).C {
-			agg.Increment("foo")
-			agg.Increment("bar")
+			agg.Incr("foo")
+			agg.Incr("bar")
 			i++
 			if i > 10 {
 				agg.Stop()

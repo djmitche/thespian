@@ -25,6 +25,9 @@ type actorDef struct {
 
 	// Timers in this struct
 	Timers []timer
+
+	// Mailboxes in this struct
+	Mailboxes []mailbox
 }
 
 type channel struct {
@@ -46,6 +49,16 @@ type timer struct {
 	PrivateName string
 }
 
+type mailbox struct {
+	// Name is the name of the field, without the "Sender" or "Receiver" suffix
+	Name string
+
+	// Def is the mailboxDef
+	Def *mailboxDef
+}
+
+// NewActorDef creates a new actor definition based on a type with the given
+// private name.
 func NewActorDef(pkg *packages.Package, name string) (*actorDef, error) {
 	obj, err := findTypeDef(pkg, name)
 	if err != nil {
@@ -115,13 +128,28 @@ func NewActorDef(pkg *packages.Package, name string) (*actorDef, error) {
 				})
 			}
 		}
+
+		if strings.HasSuffix(name, "Receiver") {
+			_, typeName, err := fieldTypeName(field)
+			if err != nil {
+				continue
+			}
+			mboxDef, err := NewMailboxDefForReceiver(pkg, typeName)
+			if err != nil {
+				return nil, fmt.Errorf("Invalid type for %s: %s", name, err)
+			}
+			def.Mailboxes = append(def.Mailboxes, mailbox{
+				Name: name[:len(name)-len("Receiver")],
+				Def:  mboxDef,
+			})
+		}
 	}
 
 	return def, nil
 }
 
 func (def *actorDef) Generate(out *formatter) {
-	var template = template.Must(template.New("actor_gen").Parse(`
+	var template = template.Must(template.New("actor_gen").Funcs(templateFuncs()).Parse(`
 // --- {{.PublicName}}
 
 // {{.PublicName}} is the public handle for {{.PrivateName}} actors.
@@ -129,6 +157,9 @@ type {{.PublicName}} struct {
 	stopChan chan<- struct{}
 	{{- range .Channels }}
 	{{.PrivateName}}Chan chan<- {{.ElementType}}
+	{{- end }}
+	{{- range .Mailboxes }}
+	{{private .Name}}Sender {{.Def.SenderName}}
 	{{- end }}
 }
 
@@ -144,14 +175,37 @@ func (a *{{$.PublicName}}) {{.PublicName}}(m {{.ElementType}}) {
 }
 {{- end }}
 
+{{ range .Mailboxes }}
+// {{public .Name}} sends to the actor's {{public .Name}} mailbox.
+func (a *{{$.PublicName}}) {{public .Name}}(m {{.Def.MessageType}}) {
+	// TODO: generate this based on the mbox kind
+	a.{{private .Name}}Sender.C <- m
+}
+{{- end }}
+
 // --- {{.PrivateName}}
 
 func (a {{.PrivateName}}) spawn(rt *thespian.Runtime) *{{.PublicName}} {
 	rt.Register(&a.ActorBase)
+	// TODO: these should be in a builder of some sort
+	{{- range .Mailboxes }}
+	// TODO: generate based on mbox kind
+	{{private .Name}}Mailbox := New{{public .Def.PrivateName}}()
+	{{- end }}
+
+	{{- range .Mailboxes }}
+	// TODO: generate based on mbox kind
+	a.{{private .Name}}Receiver = {{private .Name}}Mailbox.Receiver()
+	{{- end }}
+
 	handle := &{{.PublicName}}{
 		stopChan: a.StopChan,
 		{{- range .Channels }}
 			{{.PrivateName}}Chan: a.{{.PrivateName}}Chan,
+		{{- end }}
+		{{- range .Mailboxes }}
+			// TODO: generate based on mbox kind
+			{{private .Name}}Sender: {{private .Name}}Mailbox.Sender(),
 		{{- end }}
 	}
 	go a.loop()
@@ -180,6 +234,12 @@ func (a *{{.PrivateName}}) loop() {
 			case m := <-*a.{{.PrivateName}}Timer.C:
 				a.handle{{.PublicName}}(m)
 			{{- end }}
+
+			{{- range .Mailboxes }}
+			// TODO: generate this based on the mbox kind
+			case m := <-a.{{private .Name}}Receiver.C:
+				a.handle{{public .Name}}(m)
+			{{- end }}
 		}
 	}
 }
@@ -188,6 +248,7 @@ func (a *{{.PrivateName}}) cleanup() {
 	{{- range .Timers }}
 	a.{{.PrivateName}}Timer.Stop()
 	{{- end }}
+	// TODO: clean up mboxes too
 	a.Runtime.ActorStopped(&a.ActorBase)
 }
 `))

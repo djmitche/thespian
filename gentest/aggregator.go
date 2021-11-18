@@ -25,6 +25,8 @@ type aggregator struct {
 	// *Chan are treated as message channels
 	incrementChan chan string
 
+	incrReceiver StringReceiver
+
 	// *Timer are treated as timers
 	flushTimer thespian.Timer
 
@@ -55,6 +57,10 @@ func (a *aggregator) handleIncrement(name string) error {
 		a.counts[name] = 1
 	}
 	return nil
+}
+
+func (a *aggregator) handleIncr(name string) error {
+	return a.handleIncrement(name)
 }
 
 func (a *aggregator) handleFlush(t time.Time) error {

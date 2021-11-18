@@ -26,6 +26,8 @@ func (a *Reporter) Report(m []string) {
 
 func (a reporter) spawn(rt *thespian.Runtime) *Reporter {
 	rt.Register(&a.ActorBase)
+	// TODO: these should be in a builder of some sort
+
 	handle := &Reporter{
 		stopChan:   a.StopChan,
 		reportChan: a.reportChan,
@@ -53,5 +55,6 @@ func (a *reporter) loop() {
 }
 
 func (a *reporter) cleanup() {
+	// TODO: clean up mboxes too
 	a.Runtime.ActorStopped(&a.ActorBase)
 }

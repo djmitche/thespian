@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/types"
 	"os"
+	"text/template"
 
 	"github.com/iancoleman/strcase"
 	"golang.org/x/tools/go/packages"
@@ -17,6 +18,13 @@ func publicIdentifier(s string) string {
 
 func privateIdentifier(s string) string {
 	return strcase.ToLowerCamel(s)
+}
+
+func templateFuncs() template.FuncMap {
+	return template.FuncMap{
+		"public":  publicIdentifier,
+		"private": privateIdentifier,
+	}
 }
 
 // fieldTypeName returns the packge and name of the type of the given field

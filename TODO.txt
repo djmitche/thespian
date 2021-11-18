@@ -35,7 +35,9 @@ Misc:
   reference to it
 * move some types to internal/
 * non-blocking send in Actor.Stop
-* use text.template or something for codegen
+* allow mailbox types not in the same package (still need info on their type)
+* use template public/private functions instead of PublicName/PrivateName
+* Receiver -> Rx, Sender -> Tx
 
 Later:
 * allow build flags for generation

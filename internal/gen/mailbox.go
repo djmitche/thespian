@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"go/types"
+	"strings"
 	"text/template"
 
 	"github.com/iancoleman/strcase"
@@ -35,6 +36,12 @@ type mailboxDef struct {
 	// PublicName is name of the the public struct
 	PublicName string
 
+	// ReceiverName is the name of the receiver type
+	ReceiverName string
+
+	// SenderName is the name of the sender type
+	SenderName string
+
 	// Kind gives the kind of this mailbox
 	Kind MailboxKind
 
@@ -42,6 +49,14 @@ type mailboxDef struct {
 	MessageType string
 }
 
+// NewMailboxDefForReceiver creates a new mailboxDef for the given receiver type name
+func NewMailboxDefForReceiver(pkg *packages.Package, name string) (*mailboxDef, error) {
+	mailboxName := privateIdentifier(strings.Replace(name, "Receiver", "Mailbox", 1))
+	return NewMailboxDef(pkg, mailboxName)
+}
+
+// NewMailboxDef creates a new mailbox definition based on a type with the given
+// private name.
 func NewMailboxDef(pkg *packages.Package, name string) (*mailboxDef, error) {
 	obj, err := findTypeDef(pkg, name)
 	if err != nil {
@@ -52,6 +67,11 @@ func NewMailboxDef(pkg *packages.Package, name string) (*mailboxDef, error) {
 	// the object must be private
 	if obj.Exported() {
 		return nil, fmt.Errorf("type is exported")
+	}
+
+	// ..and must end in Mailbo
+	if !strings.HasSuffix(name, "Mailbox") {
+		return nil, fmt.Errorf("type name does not end in 'Mailbox'")
 	}
 
 	// ..and it must be a type name
@@ -108,28 +128,57 @@ func NewMailboxDef(pkg *packages.Package, name string) (*mailboxDef, error) {
 
 	// ok, this is an mailbox definition!
 	def := &mailboxDef{
-		pkg:         pkg,
-		PrivateName: privateIdentifier(name),
-		PublicName:  publicIdentifier(name),
-		Kind:        mailboxKind,
-		MessageType: messageType,
+		pkg:          pkg,
+		PrivateName:  privateIdentifier(name),
+		PublicName:   publicIdentifier(name),
+		SenderName:   strings.Replace(publicIdentifier(name), "Mailbox", "Sender", 1),
+		ReceiverName: strings.Replace(publicIdentifier(name), "Mailbox", "Receiver", 1),
+		Kind:         mailboxKind,
+		MessageType:  messageType,
 	}
 
 	return def, nil
 }
 
 func (def *mailboxDef) Generate(out *formatter) {
-	fmt.Printf("%#v\n", def)
 	if def.Kind != SimpleMailboxKind {
 		panic("undefined kind")
 	}
 
 	var template = template.Must(template.New("mailbox_gen").Parse(`
-// --- {{.PublicName}}
-
 // {{.PublicName}} is a mailbox for messages of type {{.MessageType}}.
 type {{.PublicName}} struct {
-	c chan {{.MessageType}}
+	C chan {{.MessageType}}
+}
+
+func New{{.PublicName}}() {{.PublicName}} {
+	return {{.PublicName}}{
+		C: make(chan {{.MessageType}}, 10), // TODO: channel size??
+	}
+}
+
+// Sender creates a {{.SenderName}} for this mailbox
+func (mbox *{{.PublicName}}) Sender() {{.SenderName}} {
+	return {{.SenderName}}{
+		C: mbox.C,
+	}
+}
+
+// Receiver creates a {{.ReceiverName}} for this mailbox
+func (mbox *{{.PublicName}}) Receiver() {{.ReceiverName}} {
+	return {{.ReceiverName}}{
+		C: mbox.C,
+	}
+}
+
+// {{.SenderName}} sends to a mailbox for messages of type {{.MessageType}}.
+type {{.SenderName}} struct {
+	C chan<- {{.MessageType}}
+}
+
+// {{.ReceiverName}} sends to a mailbox for messages of type {{.MessageType}}.
+type {{.ReceiverName}} struct {
+	C <-chan {{.MessageType}}
 }
 `))
 	out.executeTemplate(template, def)
@@ -149,7 +198,6 @@ func GenerateMailbox(typeName string) {
 	out := newFormatter(pkg, strcase.ToSnake(typeName)+"_thespian_gen.go")
 	out.printf("// code generaged by thespian; DO NOT EDIT\n\n")
 	out.printf("package %s\n\n", pkg.Name)
-	//out.printf("import \"%s\"\n\n", thespianPackage)
 	def.Generate(out)
 	err = out.write()
 	if err != nil {
