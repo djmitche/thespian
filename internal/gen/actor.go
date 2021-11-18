@@ -1,9 +1,8 @@
-// Package gen generates Go code for thespian
 package gen
 
 import (
+	"fmt"
 	"go/types"
-	"log"
 	"strings"
 
 	"github.com/iancoleman/strcase"
@@ -11,49 +10,40 @@ import (
 )
 
 // TryActorDefFromObject tries to create an ActorDef from a definition in a package.
-func TryActorDefFromObject(pkg *packages.Package, obj types.Object) *actorDef {
-	dbg("Examining type %s.%s", pkg.PkgPath, obj.Name())
-
+func TryActorDefFromObject(pkg *packages.Package, obj types.Object) (*actorDef, error) {
 	// actor implementations are generated from the private struct type, so
 	// the object must be private
 	if obj.Exported() {
-		dbg("..disallowed because exported")
-		return nil
+		return nil, fmt.Errorf("type is exported")
 	}
 
 	// ..and it must be a type name
 	typeName, ok := obj.(*types.TypeName)
 	if !ok {
-		dbg("..disallowed because not a type name")
-		return nil
+		return nil, fmt.Errorf("object is not a type name")
 	}
 
 	// ..and it must be a named type
 	namedValue, ok := typeName.Type().(*types.Named)
 	if !ok {
-		dbg("..disallowed because not a named type")
-		return nil
+		return nil, fmt.Errorf("object is not a named type")
 	}
 
 	// ..and it must name a struct
 	underlyingStruct, ok := namedValue.Underlying().(*types.Struct)
 	if !ok {
-		dbg("..disallowed because not a struct")
-		return nil
+		return nil, fmt.Errorf("object is not a struct")
 	}
 
 	// ..and that struct must begin with an embedded ActorBase field
 	if underlyingStruct.NumFields() < 1 {
-		dbg("..disallowed because struct has no fields")
-		return nil
+		return nil, fmt.Errorf("struct has no fields")
 	}
 	firstField := underlyingStruct.Field(0)
 
 	// ..which must be of type thespianPackage.ActorBase
-	dbg("%t %s", firstField.Embedded(), firstField.Name())
 	if !firstField.Embedded() || firstField.Name() != "ActorBase" || !isFieldOfNamedType(firstField, thespianPackage, "ActorBase") {
-		dbg("..disallowed because struct does not have an embedded %s.ActorBase", thespianPackage)
-		return nil
+		return nil, fmt.Errorf("struct does not have an embedded %s.ActorBase", thespianPackage)
 	}
 
 	// ok, this is an actor definition!
@@ -85,7 +75,7 @@ func TryActorDefFromObject(pkg *packages.Package, obj types.Object) *actorDef {
 		}
 	}
 
-	return def
+	return def, nil
 }
 
 func GenerateActor(typeName string) {
@@ -95,11 +85,11 @@ func GenerateActor(typeName string) {
 	}, ".")
 
 	if err != nil {
-		log.Fatal(err)
+		bail("Could not parse package: %s", err)
 	}
 
 	if len(pkgs) != 1 {
-		log.Fatalf("error: %d packages found", len(pkgs))
+		bail("Parsing package found %d packages (expected 1)", len(pkgs))
 	}
 	pkg := pkgs[0]
 
@@ -114,9 +104,9 @@ func GenerateActor(typeName string) {
 	if obj == nil {
 		bail("Type %s not found in this package", typeName)
 	}
-	def := TryActorDefFromObject(pkg, obj)
-	if def == nil {
-		bail("Type %s not valid in this package", typeName)
+	def, err := TryActorDefFromObject(pkg, obj)
+	if err != nil {
+		bail("Could not build actor for type %s: %s", typeName, err)
 	}
 
 	out := newFormatter(pkg, strcase.ToSnake(typeName)+"_thespian_gen.go")
