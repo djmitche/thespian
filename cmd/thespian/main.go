@@ -207,7 +207,8 @@ func (def *actorDef) generatePublicMethods(out *formatter) {
 }
 
 func (def *actorDef) generateSpawnMethod(out *formatter) {
-	out.printf("func (a %s) spawn() *%s {\n", def.privateName, def.publicName)
+	out.printf("func (a %s) spawn(rt *thespian.Runtime) *%s {\n", def.privateName, def.publicName)
+	out.printf("\trt.Register(&a.ActorBase)\n")
 	out.printf("\thandle := &%s{\n", def.publicName)
 	out.printf("\t\tstopChan: a.StopChan,\n")
 	for _, ch := range def.channels {
@@ -316,6 +317,7 @@ func main() {
 	out := newFormatter(pkg)
 	out.printf("// code generaged by thespian; DO NOT EDIT\n\n")
 	out.printf("package %s\n\n", pkg.Name)
+	out.printf("import \"%s\"\n\n", thespianPackage)
 
 	atLeastOne := false
 	for _, obj := range pkg.TypesInfo.Defs {

@@ -2,49 +2,7 @@
 
 package gentest
 
-// --- Reporter
-
-// Reporter is the public handle for reporter actors.
-type Reporter struct {
-	stopChan   chan<- struct{}
-	reportChan chan<- []string
-}
-
-// Report sends the Report message to the actor.
-func (a *Reporter) Report(m []string) {
-	a.reportChan <- m
-}
-
-// --- reporter
-
-func (a reporter) spawn() *Reporter {
-	handle := &Reporter{
-		stopChan:   a.StopChan,
-		reportChan: a.reportChan,
-	}
-	go a.loop()
-	return handle
-}
-
-func (a *reporter) loop() {
-	defer func() {
-		a.cleanup()
-	}()
-
-	a.HandleStart()
-	for {
-		select {
-		case <-a.StopChan:
-			a.HandleStop()
-			return
-		case m := <-a.reportChan:
-			a.handleReport(m)
-		}
-	}
-}
-
-func (a *reporter) cleanup() {
-}
+import "github.com/djmitche/thespian"
 
 // --- Aggregator
 
@@ -61,7 +19,8 @@ func (a *Aggregator) Increment(m string) {
 
 // --- aggregator
 
-func (a aggregator) spawn() *Aggregator {
+func (a aggregator) spawn(rt *thespian.Runtime) *Aggregator {
+	rt.Register(&a.ActorBase)
 	handle := &Aggregator{
 		stopChan:      a.StopChan,
 		incrementChan: a.incrementChan,
@@ -91,4 +50,49 @@ func (a *aggregator) loop() {
 
 func (a *aggregator) cleanup() {
 	a.flushTimer.Stop()
+}
+
+// --- Reporter
+
+// Reporter is the public handle for reporter actors.
+type Reporter struct {
+	stopChan   chan<- struct{}
+	reportChan chan<- []string
+}
+
+// Report sends the Report message to the actor.
+func (a *Reporter) Report(m []string) {
+	a.reportChan <- m
+}
+
+// --- reporter
+
+func (a reporter) spawn(rt *thespian.Runtime) *Reporter {
+	rt.Register(&a.ActorBase)
+	handle := &Reporter{
+		stopChan:   a.StopChan,
+		reportChan: a.reportChan,
+	}
+	go a.loop()
+	return handle
+}
+
+func (a *reporter) loop() {
+	defer func() {
+		a.cleanup()
+	}()
+
+	a.HandleStart()
+	for {
+		select {
+		case <-a.StopChan:
+			a.HandleStop()
+			return
+		case m := <-a.reportChan:
+			a.handleReport(m)
+		}
+	}
+}
+
+func (a *reporter) cleanup() {
 }

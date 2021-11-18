@@ -3,7 +3,8 @@
 Overall:
 
 1. Implement
-2. Codegen
+2. Generalize
+3. Codegen
 
 ## Monitoring
 
@@ -30,3 +31,10 @@ Want:
 * Abstraction for channels, too
 * Some way to support multiple consumers (e.g., multiple demuxes)
 * Flexible polling (so, ignore some messages in some modes)
+
+## Tasks
+
+* create a Runtime type
+* copy the private struct in `spawn` so that callers *cannot* maintain a
+  reference to it
+* a way to test this with unit tests and not a program

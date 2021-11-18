@@ -17,11 +17,10 @@ type reporter struct {
 	reportChan chan []string
 }
 
-func NewReporter() *Reporter {
+func NewReporter(rt *thespian.Runtime) *Reporter {
 	return reporter{
-		ActorBase:  thespian.NewActorBase(),
 		reportChan: make(chan []string, 5),
-	}.spawn()
+	}.spawn(rt)
 }
 
 func (a *reporter) handleReport(lines []string) error {

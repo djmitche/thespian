@@ -31,13 +31,12 @@ type aggregator struct {
 	reporterer Reporterer
 }
 
-func NewAggregator(reporterer Reporterer) *Aggregator {
+func NewAggregator(rt *thespian.Runtime, reporterer Reporterer) *Aggregator {
 	return aggregator{
-		ActorBase:     thespian.NewActorBase(),
 		incrementChan: make(chan string, 5),
 		counts:        make(map[string]int),
 		reporterer:    reporterer,
-	}.spawn()
+	}.spawn(rt)
 }
 
 func (a *aggregator) HandleStart() error {

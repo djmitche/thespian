@@ -1,48 +1,24 @@
 package thespian
 
-import "time"
+import "sync/atomic"
 
-// TODO: it'd be nice to have these fields be private
-type ActorBase struct {
-	ID       uint64
-	StopChan chan struct{}
+// A Thespian runtime manages a collection of actors.
+type Runtime struct {
+	// lastID is atomically incremented to generate actor IDs
+	lastID uint64
 }
 
-func NewActorBase() ActorBase {
-	return ActorBase{
-		ID:       13, // TODO
-		StopChan: make(chan struct{}, 5),
+func NewRuntime() *Runtime {
+	return &Runtime{
+		lastID: 0,
 	}
 }
 
-// --- Timer
-
-type Timer struct {
-	C      *<-chan time.Time
-	ticker *time.Ticker
-}
-
-func (t *Timer) Tick(dur time.Duration) {
-	t.ticker = time.NewTicker(dur)
-	t.C = &t.ticker.C
-}
-
-func (t *Timer) Stop() {
-	if t.ticker != nil {
-		t.ticker.Stop()
-		t.ticker = nil
+func (rt *Runtime) Register(base *ActorBase) {
+	if base.ID != 0 {
+		panic("ActorBase has already been registered")
 	}
-	t.C = nil
-}
-
-// --- default implementations
-
-func (a *ActorBase) HandleStart() error {
-	// could be overridden by user impl
-	return nil
-}
-
-func (a *ActorBase) HandleStop() error {
-	// could be overridden by user impl
-	return nil
+	base.ID = atomic.AddUint64(&rt.lastID, 1)
+	base.Runtime = rt
+	base.StopChan = make(chan struct{}, 5)
 }

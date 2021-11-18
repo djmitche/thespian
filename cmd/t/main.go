@@ -3,12 +3,14 @@ package main
 import (
 	"time"
 
+	"github.com/djmitche/thespian"
 	"github.com/djmitche/thespian/gentest"
 )
 
 func main() {
-	rep := gentest.NewReporter()
-	agg := gentest.NewAggregator(rep)
+	rt := thespian.NewRuntime()
+	rep := gentest.NewReporter(rt)
+	agg := gentest.NewAggregator(rt, rep)
 
 	go func() {
 		for _ = range time.NewTicker(900 * time.Millisecond).C {
