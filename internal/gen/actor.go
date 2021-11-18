@@ -20,25 +20,11 @@ type actorDef struct {
 	// PublicName is name of the the public struct
 	PublicName string
 
-	// message Channels in this struct
-	Channels []channel
-
 	// Timers in this struct
 	Timers []timer
 
 	// Mailboxes in this struct
 	Mailboxes []mailbox
-}
-
-type channel struct {
-	// PublicName is the public name of the channel (without "Chan" suffix)
-	PublicName string
-
-	// PrivateName is the private name of the channel (without "Chan" suffix)
-	PrivateName string
-
-	// type of the channel elements
-	ElementType string
 }
 
 type timer struct {
@@ -105,22 +91,13 @@ func NewActorDef(pkg *packages.Package, name string) (*actorDef, error) {
 		pkg:         pkg,
 		PrivateName: name,
 		PublicName:  publicIdentifier(name),
-		Channels:    []channel{},
 		Timers:      []timer{},
 	}
 
 	for i := 0; i < underlyingStruct.NumFields(); i++ {
 		field := underlyingStruct.Field(i)
 		name := field.Name()
-		if isChan, elementType := isSendRecvChan(field); isChan {
-			if strings.HasSuffix(name, "Chan") {
-				def.Channels = append(def.Channels, channel{
-					PublicName:  publicIdentifier(name[:len(name)-4]),
-					PrivateName: privateIdentifier(name[:len(name)-4]),
-					ElementType: elementType,
-				})
-			}
-		} else if isFieldOfNamedType(field, thespianPackage, "Timer") {
+		if isFieldOfNamedType(field, thespianPackage, "Timer") {
 			if strings.HasSuffix(name, "Timer") {
 				def.Timers = append(def.Timers, timer{
 					PublicName:  publicIdentifier(name[:len(name)-5]),
@@ -155,9 +132,6 @@ func (def *actorDef) Generate(out *formatter) {
 // {{.PublicName}} is the public handle for {{.PrivateName}} actors.
 type {{.PublicName}} struct {
 	stopChan chan<- struct{}
-	{{- range .Channels }}
-	{{.PrivateName}}Chan chan<- {{.ElementType}}
-	{{- end }}
 	{{- range .Mailboxes }}
 	{{private .Name}}Sender {{.Def.SenderName}}
 	{{- end }}
@@ -167,13 +141,6 @@ type {{.PublicName}} struct {
 func (a *{{.PublicName}}) Stop() {
 	a.stopChan <- struct{}{}
 }
-
-{{ range .Channels }}
-// {{.PublicName}} sends the {{.PublicName}} message to the actor.
-func (a *{{$.PublicName}}) {{.PublicName}}(m {{.ElementType}}) {
-	a.{{.PrivateName}}Chan <- m
-}
-{{- end }}
 
 {{ range .Mailboxes }}
 // {{public .Name}} sends to the actor's {{public .Name}} mailbox.
@@ -200,9 +167,6 @@ func (a {{.PrivateName}}) spawn(rt *thespian.Runtime) *{{.PublicName}} {
 
 	handle := &{{.PublicName}}{
 		stopChan: a.StopChan,
-		{{- range .Channels }}
-			{{.PrivateName}}Chan: a.{{.PrivateName}}Chan,
-		{{- end }}
 		{{- range .Mailboxes }}
 			// TODO: generate based on mbox kind
 			{{private .Name}}Sender: {{private .Name}}Mailbox.Sender(),
@@ -224,11 +188,6 @@ func (a *{{.PrivateName}}) loop() {
 		case <-a.StopChan:
 			a.HandleStop()
 			return
-
-			{{- range .Channels }}
-			case m := <-a.{{.PrivateName}}Chan:
-				a.handle{{.PublicName}}(m)
-			{{- end }}
 
 			{{- range .Timers }}
 			case m := <-*a.{{.PrivateName}}Timer.C:

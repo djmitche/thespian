@@ -8,19 +8,13 @@ import "github.com/djmitche/thespian"
 
 // Aggregator is the public handle for aggregator actors.
 type Aggregator struct {
-	stopChan      chan<- struct{}
-	incrementChan chan<- string
-	incrSender    StringSender
+	stopChan   chan<- struct{}
+	incrSender StringSender
 }
 
 // Stop sends a message to stop the actor.
 func (a *Aggregator) Stop() {
 	a.stopChan <- struct{}{}
-}
-
-// Increment sends the Increment message to the actor.
-func (a *Aggregator) Increment(m string) {
-	a.incrementChan <- m
 }
 
 // Incr sends to the actor's Incr mailbox.
@@ -40,8 +34,7 @@ func (a aggregator) spawn(rt *thespian.Runtime) *Aggregator {
 	a.incrReceiver = incrMailbox.Receiver()
 
 	handle := &Aggregator{
-		stopChan:      a.StopChan,
-		incrementChan: a.incrementChan,
+		stopChan: a.StopChan,
 		// TODO: generate based on mbox kind
 		incrSender: incrMailbox.Sender(),
 	}
@@ -61,8 +54,6 @@ func (a *aggregator) loop() {
 		case <-a.StopChan:
 			a.HandleStop()
 			return
-		case m := <-a.incrementChan:
-			a.handleIncrement(m)
 		case m := <-*a.flushTimer.C:
 			a.handleFlush(m)
 		// TODO: generate this based on the mbox kind

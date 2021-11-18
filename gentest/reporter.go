@@ -14,14 +14,11 @@ type reporter struct {
 
 	self *Reporter
 
-	// *Chan are treated as message channels
-	reportChan chan []string
+	reportReceiver StringSliceReceiver
 }
 
 func NewReporter(rt *thespian.Runtime) *Reporter {
-	return reporter{
-		reportChan: make(chan []string, 5),
-	}.spawn(rt)
+	return reporter{}.spawn(rt)
 }
 
 func (a *reporter) handleReport(lines []string) error {

@@ -22,9 +22,6 @@ type aggregator struct {
 	// self reference
 	self *Aggregator
 
-	// *Chan are treated as message channels
-	incrementChan chan string
-
 	incrReceiver StringReceiver
 
 	// *Timer are treated as timers
@@ -37,9 +34,8 @@ type aggregator struct {
 
 func NewAggregator(rt *thespian.Runtime, reporterer Reporterer) *Aggregator {
 	return aggregator{
-		incrementChan: make(chan string, 5),
-		counts:        make(map[string]int),
-		reporterer:    reporterer,
+		counts:     make(map[string]int),
+		reporterer: reporterer,
 	}.spawn(rt)
 }
 
@@ -49,7 +45,7 @@ func (a *aggregator) HandleStart() error {
 	return nil
 }
 
-func (a *aggregator) handleIncrement(name string) error {
+func (a *aggregator) handleIncr(name string) error {
 	log.Printf("inc %s", name)
 	if v, ok := a.counts[name]; ok {
 		a.counts[name] = v + 1
@@ -57,10 +53,6 @@ func (a *aggregator) handleIncrement(name string) error {
 		a.counts[name] = 1
 	}
 	return nil
-}
-
-func (a *aggregator) handleIncr(name string) error {
-	return a.handleIncrement(name)
 }
 
 func (a *aggregator) handleFlush(t time.Time) error {
