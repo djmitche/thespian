@@ -14,17 +14,14 @@ type actorDef struct {
 	// package contining the actor definition
 	Pkg *packages.Package
 
-	// PrivateName is the name of the private struct
-	PrivateName string
+	// Name is the name of the struct
+	Name string
 
-	// PublicName is name of the the public struct
-	PublicName string
-
-	// Mailboxes in this struct
-	Mailboxes []mailbox
+	// MailboxFields enumerates the mailbox fields in this struct
+	MailboxFields []MailboxField
 }
 
-type mailbox struct {
+type MailboxField struct {
 	// Name is the name of the field, without the "Sender" or "Receiver" suffix
 	Name string
 
@@ -77,9 +74,8 @@ func NewActorDef(pkg *packages.Package, name string) (*actorDef, error) {
 
 	// ok, this is an actor definition!
 	def := &actorDef{
-		Pkg:         pkg,
-		PrivateName: name,
-		PublicName:  publicIdentifier(name),
+		Pkg:  pkg,
+		Name: name,
 	}
 
 	for i := 0; i < underlyingStruct.NumFields(); i++ {
@@ -94,7 +90,7 @@ func NewActorDef(pkg *packages.Package, name string) (*actorDef, error) {
 			if err != nil {
 				return nil, fmt.Errorf("Invalid type for %s: %s", name, err)
 			}
-			def.Mailboxes = append(def.Mailboxes, mailbox{
+			def.MailboxFields = append(def.MailboxFields, MailboxField{
 				Name: name[:len(name)-len("Receiver")],
 				Def:  mboxDef,
 			})
@@ -113,12 +109,12 @@ package {{.Pkg.Name}}
 // TODO: use variable
 import "github.com/djmitche/thespian"
 
-// --- {{.PublicName}}
+// --- {{public .Name}}
 
-// {{.PublicName}} is the public handle for {{.PrivateName}} actors.
-type {{.PublicName}} struct {
+// {{public .Name}} is the public handle for {{private .Name}} actors.
+type {{public .Name}} struct {
 	stopChan chan<- struct{}
-	{{- range .Mailboxes }}
+	{{- range .MailboxFields }}
 	// TODO: generate this based on the mbox kind
 	{{- if eq .Def.Kind "SimpleMailbox" }}
 	{{private .Name}}Sender {{swapSuffix .Def.Name "Mailbox" "Sender" | public}}
@@ -128,14 +124,14 @@ type {{.PublicName}} struct {
 }
 
 // Stop sends a message to stop the actor.
-func (a *{{.PublicName}}) Stop() {
+func (a *{{public .Name}}) Stop() {
 	a.stopChan <- struct{}{}
 }
 
-{{ range .Mailboxes }}
+{{ range .MailboxFields }}
 {{- if eq .Def.Kind "SimpleMailbox" }}
 // {{public .Name}} sends to the actor's {{public .Name}} mailbox.
-func (a *{{$.PublicName}}) {{public .Name}}(m {{.Def.MessageType}}) {
+func (a *{{public $.Name}}) {{public .Name}}(m {{.Def.MessageType}}) {
 	// TODO: generate this based on the mbox kind
 	a.{{private .Name}}Sender.C <- m
 }
@@ -143,12 +139,12 @@ func (a *{{$.PublicName}}) {{public .Name}}(m {{.Def.MessageType}}) {
 {{- end }}
 {{- end }}
 
-// --- {{.PrivateName}}
+// --- {{private .Name}}
 
-func (a {{.PrivateName}}) spawn(rt *thespian.Runtime) *{{.PublicName}} {
+func (a {{private .Name}}) spawn(rt *thespian.Runtime) *{{public .Name}} {
 	rt.Register(&a.ActorBase)
 	// TODO: these should be in a builder of some sort
-	{{- range .Mailboxes }}
+	{{- range .MailboxFields }}
 	// TODO: generate based on mbox kind
 	{{- if eq .Def.Kind "SimpleMailbox" }}
 	{{private .Name}}Mailbox := New{{public .Def.Name}}()
@@ -156,7 +152,7 @@ func (a {{.PrivateName}}) spawn(rt *thespian.Runtime) *{{.PublicName}} {
 	{{- end }}
 	{{- end }}
 
-	{{- range .Mailboxes }}
+	{{- range .MailboxFields }}
 	// TODO: generate based on mbox kind
 	{{- if eq .Def.Kind "SimpleMailbox" }}
 	a.{{private .Name}}Receiver = {{private .Name}}Mailbox.Receiver()
@@ -165,9 +161,9 @@ func (a {{.PrivateName}}) spawn(rt *thespian.Runtime) *{{.PublicName}} {
 	{{- end }}
 	{{- end }}
 
-	handle := &{{.PublicName}}{
+	handle := &{{public .Name}}{
 		stopChan: a.StopChan,
-		{{- range .Mailboxes }}
+		{{- range .MailboxFields }}
 		// TODO: generate based on mbox kind
 		{{- if eq .Def.Kind "SimpleMailbox" }}
 		{{private .Name}}Sender: {{private .Name}}Mailbox.Sender(),
@@ -179,7 +175,7 @@ func (a {{.PrivateName}}) spawn(rt *thespian.Runtime) *{{.PublicName}} {
 	return handle
 }
 
-func (a *{{.PrivateName}}) loop() {
+func (a *{{private .Name}}) loop() {
 	defer func() {
 		a.cleanup()
 	}()
@@ -192,7 +188,7 @@ func (a *{{.PrivateName}}) loop() {
 			a.HandleStop()
 			return
 
-			{{- range .Mailboxes }}
+			{{- range .MailboxFields }}
 			// TODO: generate this based on the mbox kind
 			{{- if eq .Def.Kind "SimpleMailbox" }}
 			case m := <-a.{{private .Name}}Receiver.C:
@@ -206,7 +202,7 @@ func (a *{{.PrivateName}}) loop() {
 	}
 }
 
-func (a *{{.PrivateName}}) cleanup() {
+func (a *{{private .Name}}) cleanup() {
 	// TODO: clean up mboxes too
 	a.Runtime.ActorStopped(&a.ActorBase)
 }
