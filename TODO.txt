@@ -34,7 +34,6 @@ Misc:
 * copy the private struct in `spawn` so that callers *cannot* maintain a
   reference to it
 * move some types to internal/
-* allow Wait to be cancelled with a context
 * non-blocking send in Actor.Stop
 * use text.template or something for codegen
 
