@@ -38,7 +38,6 @@ func (a *aggregator) loop() {
 	defer func() {
 		a.cleanup()
 	}()
-
 	a.HandleStart()
 	for {
 		select {

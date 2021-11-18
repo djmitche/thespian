@@ -38,7 +38,6 @@ func (a *reporter) loop() {
 	defer func() {
 		a.cleanup()
 	}()
-
 	a.HandleStart()
 	for {
 		select {

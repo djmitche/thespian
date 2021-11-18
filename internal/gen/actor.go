@@ -50,10 +50,10 @@ func TryActorDefFromObject(pkg *packages.Package, obj types.Object) (*actorDef, 
 	name := typeName.Name()
 	def := &actorDef{
 		pkg:         pkg,
-		privateName: name,
-		publicName:  publicIdentifier(name),
-		channels:    []channel{},
-		timers:      []timer{},
+		PrivateName: name,
+		PublicName:  publicIdentifier(name),
+		Channels:    []channel{},
+		Timers:      []timer{},
 	}
 
 	for i := 0; i < underlyingStruct.NumFields(); i++ {
@@ -61,15 +61,17 @@ func TryActorDefFromObject(pkg *packages.Package, obj types.Object) (*actorDef, 
 		name := field.Name()
 		if isChan, elementType := isSendRecvChan(field); isChan {
 			if strings.HasSuffix(name, "Chan") {
-				def.channels = append(def.channels, channel{
-					name:        name[:len(name)-4],
-					elementType: elementType,
+				def.Channels = append(def.Channels, channel{
+					PublicName:  publicIdentifier(name[:len(name)-4]),
+					PrivateName: privateIdentifier(name[:len(name)-4]),
+					ElementType: elementType,
 				})
 			}
 		} else if isFieldOfNamedType(field, thespianPackage, "Timer") {
 			if strings.HasSuffix(name, "Timer") {
-				def.timers = append(def.timers, timer{
-					name: name[:len(name)-5],
+				def.Timers = append(def.Timers, timer{
+					PublicName:  publicIdentifier(name[:len(name)-5]),
+					PrivateName: privateIdentifier(name[:len(name)-5]),
 				})
 			}
 		}

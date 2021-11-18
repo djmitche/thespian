@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -30,6 +31,13 @@ func newFormatter(pkg *packages.Package, filename string) *formatter {
 // add content to the source file
 func (f *formatter) printf(format string, args ...interface{}) {
 	fmt.Fprintf(&f.buf, format, args...)
+}
+
+func (f *formatter) executeTemplate(tpl *template.Template, data interface{}) {
+	err := tpl.Execute(&f.buf, data)
+	if err != nil {
+		bail("template error: %s", err)
+	}
 }
 
 // write the source file to the package
