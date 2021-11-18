@@ -14,7 +14,7 @@ var rootCmd = &cobra.Command{
 
 var actorCmd = &cobra.Command{
 	Use:        "actor [flags] TypeName",
-	Short:      "Generate an actor definition in this package with the given name",
+	Short:      "Generate an actor definition in this package based on the private type with the given name",
 	Args:       cobra.ExactArgs(1),
 	ArgAliases: []string{"typeName"},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -23,11 +23,23 @@ var actorCmd = &cobra.Command{
 	},
 }
 
+var mailboxCmd = &cobra.Command{
+	Use:        "mailbox [flags] TypeName",
+	Short:      "Generate an mailbox definition in this package based on the private type with the given name",
+	Args:       cobra.ExactArgs(1),
+	ArgAliases: []string{"typeName"},
+	Run: func(cmd *cobra.Command, args []string) {
+		typeName := args[0]
+		gen.GenerateMailbox(typeName)
+	},
+}
+
 func main() {
 	log.SetFlags(0)
 	log.SetPrefix("thespian: ")
 
 	rootCmd.AddCommand(actorCmd)
+	rootCmd.AddCommand(mailboxCmd)
 
 	cobra.CheckErr(rootCmd.Execute())
 }

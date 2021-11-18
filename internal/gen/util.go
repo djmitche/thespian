@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/iancoleman/strcase"
+	"golang.org/x/tools/go/packages"
 )
 
 const thespianPackage = "github.com/djmitche/thespian"
@@ -18,22 +19,33 @@ func privateIdentifier(s string) string {
 	return strcase.ToLowerCamel(s)
 }
 
-// isFieldOfNamedType determines whether the field is of the given named type.
-func isFieldOfNamedType(field *types.Var, pkgPath string, typeName string) bool {
+// fieldTypeName returns the packge and name of the type of the given field
+func fieldTypeName(field *types.Var) (string, string, error) {
 	named, ok := field.Type().(*types.Named)
 	if !ok {
-		return false
+		return "", "", fmt.Errorf("%s does not have a named type", field)
 	}
 
 	obj := named.Obj()
-	if obj.Pkg().Path() != pkgPath {
-		return false
-	}
-	if obj.Name() != typeName {
-		return false
-	}
+	return obj.Pkg().Path(), obj.Name(), nil
+}
 
-	return true
+// isFieldOfNamedType determines whether the field is of the given named type.
+func isFieldOfNamedType(field *types.Var, pkgPath string, typeName string) bool {
+	fieldPkgPath, fieldTypeName, err := fieldTypeName(field)
+	if err != nil {
+		return false
+	}
+	return fieldPkgPath == pkgPath && fieldTypeName == typeName
+}
+
+func findTypeDef(pkg *packages.Package, name string) (types.Object, error) {
+	for i, o := range pkg.TypesInfo.Defs {
+		if i.Name == name {
+			return o, nil
+		}
+	}
+	return nil, fmt.Errorf("Type %s not found in this package", name)
 }
 
 // isSendRecvChan returns true if this field is a `chan` without a direction, returning
