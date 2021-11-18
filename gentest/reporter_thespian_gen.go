@@ -2,13 +2,15 @@
 
 package gentest
 
+// TODO: use variable
 import "github.com/djmitche/thespian"
 
 // --- Reporter
 
 // Reporter is the public handle for reporter actors.
 type Reporter struct {
-	stopChan     chan<- struct{}
+	stopChan chan<- struct{}
+	// TODO: generate this based on the mbox kind
 	reportSender StringSliceSender
 }
 

@@ -29,6 +29,8 @@ Want:
 ## Tasks
 
 * a way to test this with unit tests and not a program
+* generate from thespian.yml (or toml or something) in the package root, to
+  avoid parsing go at all
 
 Misc:
 * copy the private struct in `spawn` so that callers *cannot* maintain a

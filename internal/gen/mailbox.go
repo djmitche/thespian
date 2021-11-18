@@ -14,12 +14,15 @@ type MailboxKind = string
 
 const (
 	SimpleMailboxKind MailboxKind = "SimpleMailbox"
+	TickerMailboxKind MailboxKind = "TickerMailbox"
 )
 
 // Parse a string as a mailbox kind
 func toMailboxKind(name string) (MailboxKind, error) {
 	switch name {
 	case SimpleMailboxKind:
+		return MailboxKind(name), nil
+	case TickerMailboxKind:
 		return MailboxKind(name), nil
 	default:
 		return "", fmt.Errorf("Unknown mailbox kind %s", name)
@@ -28,7 +31,7 @@ func toMailboxKind(name string) (MailboxKind, error) {
 
 type mailboxDef struct {
 	// package contining the mailbox definition
-	pkg *packages.Package
+	Pkg *packages.Package
 
 	// Name is the name of the mailbox struct
 	Name string
@@ -119,7 +122,7 @@ func NewMailboxDef(pkg *packages.Package, name string) (*mailboxDef, error) {
 
 	// ok, this is an mailbox definition!
 	def := &mailboxDef{
-		pkg:         pkg,
+		Pkg:         pkg,
 		Name:        name,
 		Kind:        mailboxKind,
 		MessageType: messageType,
@@ -129,13 +132,24 @@ func NewMailboxDef(pkg *packages.Package, name string) (*mailboxDef, error) {
 }
 
 func (def *mailboxDef) Generate(out *formatter) {
-	if def.Kind != SimpleMailboxKind {
+	switch def.Kind {
+	case SimpleMailboxKind:
+		def.GenerateSimpleMailbox(out)
+	case TickerMailboxKind:
+		def.GenerateTickerMailbox(out)
+	default:
 		panic("undefined kind")
 	}
+}
 
-	var template = template.Must(template.New("mailbox_gen").Funcs(templateFuncs()).Parse(`
+func (def *mailboxDef) GenerateSimpleMailbox(out *formatter) {
+	var template = template.Must(template.New("simple_mailbox_gen").Funcs(templateFuncs()).Parse(`
 {{- $sender := swapSuffix .Name "Mailbox" "Sender" | public }}
 {{- $receiver := swapSuffix .Name "Mailbox" "Receiver" | public }}
+// code generaged by thespian; DO NOT EDIT
+
+package {{.Pkg.Name}}
+
 // {{public .Name}} is a mailbox for messages of type {{.MessageType}}.
 type {{public .Name}} struct {
 	C chan {{.MessageType}}
@@ -174,6 +188,43 @@ type {{$receiver}} struct {
 	out.executeTemplate(template, def)
 }
 
+func (def *mailboxDef) GenerateTickerMailbox(out *formatter) {
+	var template = template.Must(template.New("ticker_mailbox_gen").Funcs(templateFuncs()).Parse(`
+{{- $receiver := swapSuffix .Name "Mailbox" "Receiver" | public }}
+// code generaged by thespian; DO NOT EDIT
+
+package {{.Pkg.Name}}
+
+import "time"
+
+// {{$receiver}} sends to a mailbox for messages of type {{.MessageType}}.
+type {{$receiver}} struct {
+	// Ticker is the ticker this mailbox responds to, or nil if it is disabled
+	Ticker *time.Ticker
+	// Never is a channel that never carries a message
+	never chan time.Time
+}
+
+{{- $receiver := swapSuffix .Name "Mailbox" "Receiver" | public }}
+func New{{$receiver}}() {{$receiver}} {
+	return {{$receiver}}{
+		Ticker: nil,
+		// TODO: just use one of these, globally
+		never: make(chan time.Time),
+	}
+}
+
+// Chan gets a channel for this ticker
+func (rx *{{$receiver}}) Chan() <-chan time.Time {
+	if rx.Ticker != nil {
+		return rx.Ticker.C
+	}
+	return rx.never
+}
+`))
+	out.executeTemplate(template, def)
+}
+
 func GenerateMailbox(typeName string) {
 	pkg, err := ParsePackage()
 	if err != nil {
@@ -186,8 +237,6 @@ func GenerateMailbox(typeName string) {
 	}
 
 	out := newFormatter(pkg, strcase.ToSnake(typeName)+"_thespian_gen.go")
-	out.printf("// code generaged by thespian; DO NOT EDIT\n\n")
-	out.printf("package %s\n\n", pkg.Name)
 	def.Generate(out)
 	err = out.write()
 	if err != nil {

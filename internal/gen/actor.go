@@ -12,7 +12,7 @@ import (
 
 type actorDef struct {
 	// package contining the actor definition
-	pkg *packages.Package
+	Pkg *packages.Package
 
 	// PrivateName is the name of the private struct
 	PrivateName string
@@ -88,7 +88,7 @@ func NewActorDef(pkg *packages.Package, name string) (*actorDef, error) {
 
 	// ok, this is an actor definition!
 	def := &actorDef{
-		pkg:         pkg,
+		Pkg:         pkg,
 		PrivateName: name,
 		PublicName:  publicIdentifier(name),
 		Timers:      []timer{},
@@ -127,13 +127,24 @@ func NewActorDef(pkg *packages.Package, name string) (*actorDef, error) {
 
 func (def *actorDef) Generate(out *formatter) {
 	var template = template.Must(template.New("actor_gen").Funcs(templateFuncs()).Parse(`
+// code generaged by thespian; DO NOT EDIT
+
+package {{.Pkg.Name}}
+
+// TODO: use variable
+import "github.com/djmitche/thespian"
+
 // --- {{.PublicName}}
 
 // {{.PublicName}} is the public handle for {{.PrivateName}} actors.
 type {{.PublicName}} struct {
 	stopChan chan<- struct{}
 	{{- range .Mailboxes }}
+	// TODO: generate this based on the mbox kind
+	{{- if eq .Def.Kind "SimpleMailbox" }}
 	{{private .Name}}Sender {{swapSuffix .Def.Name "Mailbox" "Sender" | public}}
+	{{- else if eq .Def.Kind "TickerMailbox" }}
+	{{- end }}
 	{{- end }}
 }
 
@@ -143,11 +154,14 @@ func (a *{{.PublicName}}) Stop() {
 }
 
 {{ range .Mailboxes }}
+{{- if eq .Def.Kind "SimpleMailbox" }}
 // {{public .Name}} sends to the actor's {{public .Name}} mailbox.
 func (a *{{$.PublicName}}) {{public .Name}}(m {{.Def.MessageType}}) {
 	// TODO: generate this based on the mbox kind
 	a.{{private .Name}}Sender.C <- m
 }
+{{- else if eq .Def.Kind "TickerMailbox" }}
+{{- end }}
 {{- end }}
 
 // --- {{.PrivateName}}
@@ -157,19 +171,29 @@ func (a {{.PrivateName}}) spawn(rt *thespian.Runtime) *{{.PublicName}} {
 	// TODO: these should be in a builder of some sort
 	{{- range .Mailboxes }}
 	// TODO: generate based on mbox kind
+	{{- if eq .Def.Kind "SimpleMailbox" }}
 	{{private .Name}}Mailbox := New{{public .Def.Name}}()
+	{{- else if eq .Def.Kind "TickerMailbox" }}
+	{{- end }}
 	{{- end }}
 
 	{{- range .Mailboxes }}
 	// TODO: generate based on mbox kind
+	{{- if eq .Def.Kind "SimpleMailbox" }}
 	a.{{private .Name}}Receiver = {{private .Name}}Mailbox.Receiver()
+	{{- else if eq .Def.Kind "TickerMailbox" }}
+	a.{{private .Name}}Receiver = New{{swapSuffix .Def.Name "Mailbox" "Receiver" | public }}()
+	{{- end }}
 	{{- end }}
 
 	handle := &{{.PublicName}}{
 		stopChan: a.StopChan,
 		{{- range .Mailboxes }}
-			// TODO: generate based on mbox kind
-			{{private .Name}}Sender: {{private .Name}}Mailbox.Sender(),
+		// TODO: generate based on mbox kind
+		{{- if eq .Def.Kind "SimpleMailbox" }}
+		{{private .Name}}Sender: {{private .Name}}Mailbox.Sender(),
+		{{- else if eq .Def.Kind "TickerMailbox" }}
+		{{- end }}
 		{{- end }}
 	}
 	go a.loop()
@@ -196,8 +220,13 @@ func (a *{{.PrivateName}}) loop() {
 
 			{{- range .Mailboxes }}
 			// TODO: generate this based on the mbox kind
+			{{- if eq .Def.Kind "SimpleMailbox" }}
 			case m := <-a.{{private .Name}}Receiver.C:
 				a.handle{{public .Name}}(m)
+			{{- else if eq .Def.Kind "TickerMailbox" }}
+			case t := <-a.{{private .Name}}Receiver.Chan():
+				a.handle{{public .Name}}(t)
+			{{- end }}
 			{{- end }}
 		}
 	}
@@ -226,9 +255,6 @@ func GenerateActor(typeName string) {
 	}
 
 	out := newFormatter(pkg, strcase.ToSnake(typeName)+"_thespian_gen.go")
-	out.printf("// code generaged by thespian; DO NOT EDIT\n\n")
-	out.printf("package %s\n\n", pkg.Name)
-	out.printf("import \"%s\"\n\n", thespianPackage)
 	def.Generate(out)
 	err = out.write()
 	if err != nil {

@@ -2,14 +2,17 @@
 
 package gentest
 
+// TODO: use variable
 import "github.com/djmitche/thespian"
 
 // --- Aggregator
 
 // Aggregator is the public handle for aggregator actors.
 type Aggregator struct {
-	stopChan   chan<- struct{}
+	stopChan chan<- struct{}
+	// TODO: generate this based on the mbox kind
 	incrSender StringSender
+	// TODO: generate this based on the mbox kind
 }
 
 // Stop sends a message to stop the actor.
@@ -31,12 +34,16 @@ func (a aggregator) spawn(rt *thespian.Runtime) *Aggregator {
 	// TODO: generate based on mbox kind
 	incrMailbox := NewStringMailbox()
 	// TODO: generate based on mbox kind
+	// TODO: generate based on mbox kind
 	a.incrReceiver = incrMailbox.Receiver()
+	// TODO: generate based on mbox kind
+	a.flushReceiver = NewTickerReceiver()
 
 	handle := &Aggregator{
 		stopChan: a.StopChan,
 		// TODO: generate based on mbox kind
 		incrSender: incrMailbox.Sender(),
+		// TODO: generate based on mbox kind
 	}
 	go a.loop()
 	return handle
@@ -54,17 +61,17 @@ func (a *aggregator) loop() {
 		case <-a.StopChan:
 			a.HandleStop()
 			return
-		case m := <-*a.flushTimer.C:
-			a.handleFlush(m)
 		// TODO: generate this based on the mbox kind
 		case m := <-a.incrReceiver.C:
 			a.handleIncr(m)
+		// TODO: generate this based on the mbox kind
+		case t := <-a.flushReceiver.Chan():
+			a.handleFlush(t)
 		}
 	}
 }
 
 func (a *aggregator) cleanup() {
-	a.flushTimer.Stop()
 	// TODO: clean up mboxes too
 	a.Runtime.ActorStopped(&a.ActorBase)
 }
