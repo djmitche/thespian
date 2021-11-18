@@ -197,6 +197,11 @@ func (def *actorDef) generatePublicStruct(out *formatter) {
 }
 
 func (def *actorDef) generatePublicMethods(out *formatter) {
+	out.printf("// Stop sends a message to stop the actor.\n")
+	out.printf("func (a *%s) Stop() {\n", def.publicName)
+	out.printf("\ta.stopChan <- struct{}{}\n") // TODO: non-blocking send
+	out.printf("}\n\n")
+
 	for _, ch := range def.channels {
 		ic := initialCase(ch.name)
 		out.printf("// %s sends the %s message to the actor.\n", ic, ic)
@@ -230,6 +235,8 @@ func (def *actorDef) generateLoopMethod(out *formatter) {
 	out.printf("\ta.HandleStart()\n")
 	out.printf("\tfor {\n")
 	out.printf("\t\tselect {\n")
+	out.printf("\t\tcase <-a.HealthChan:\n")
+	out.printf("\t\t\t// nothing to do\n")
 	out.printf("\t\tcase <-a.StopChan:\n")
 	out.printf("\t\t\ta.HandleStop()\n")
 	out.printf("\t\t\treturn\n")
@@ -254,6 +261,7 @@ func (def *actorDef) generateCleanupMethod(out *formatter) {
 	for _, t := range def.timers {
 		out.printf("\ta.%sTimer.Stop()\n", t.name)
 	}
+	out.printf("\ta.Runtime.ActorStopped(&a.ActorBase)\n")
 	out.printf("}\n\n")
 }
 

@@ -2,9 +2,10 @@ package thespian
 
 // TODO: it'd be nice to have these fields be private
 type ActorBase struct {
-	ID       uint64
-	Runtime  *Runtime
-	StopChan chan struct{}
+	ID         uint64
+	Runtime    *Runtime
+	StopChan   chan struct{}
+	HealthChan <-chan struct{}
 }
 
 // --- default implementations

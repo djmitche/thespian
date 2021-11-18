@@ -13,11 +13,18 @@ func main() {
 	agg := gentest.NewAggregator(rt, rep)
 
 	go func() {
-		for _ = range time.NewTicker(900 * time.Millisecond).C {
+		i := 0
+		for range time.NewTicker(900 * time.Millisecond).C {
 			agg.Increment("foo")
 			agg.Increment("bar")
+			i++
+			if i > 10 {
+				agg.Stop()
+				rep.Stop()
+				break
+			}
 		}
 	}()
 
-	time.Sleep(10 * time.Second)
+	rt.Run()
 }

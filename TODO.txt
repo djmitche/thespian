@@ -34,7 +34,12 @@ Want:
 
 ## Tasks
 
-* create a Runtime type
+* a way to test this with unit tests and not a program
+
+Misc:
 * copy the private struct in `spawn` so that callers *cannot* maintain a
   reference to it
-* a way to test this with unit tests and not a program
+* move some types to internal/
+* allow Wait to be cancelled with a context
+* NewRuntime -> WithRuntime and automatically wait for zero actors?
+* non-blocking send in Actor.Stop
