@@ -1,3 +1,32 @@
+# TODO
+
+Overall:
+
+1. Implement
+2. Codegen
+
+## Monitoring
+
+Maybe there's a "thespian runtime" that handles monitoring all actors and
+ensuring the various invariants.
+
+Want:
+
 * Build monitor support similar to Erlang's
+  * something like link so we can build supervisors
+  * Health monitoring to kill "stuck" actors
+* Useful runtime metrics
+  * Expvar integration?
+  * channel utilization
+  * agent utilization
+
+## Communication
+
+Make channels ("connections"?) a first-class type, that must be provided when
+creating a new agent instance.
+
+Want:
+
 * Abstraction for channels, too
 * Some way to support multiple consumers (e.g., multiple demuxes)
+* Flexible polling (so, ignore some messages in some modes)
