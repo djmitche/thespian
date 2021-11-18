@@ -123,9 +123,13 @@ type {{public .Name}} struct {
 	{{- end }}
 }
 
-// Stop sends a message to stop the actor.
+// Stop sends a message to stop the actor.  This does not wait until
+// the actor has stopped.
 func (a *{{public .Name}}) Stop() {
-	a.stopChan <- struct{}{}
+	select {
+	case a.stopChan <- struct{}{}:
+	default:
+	}
 }
 
 {{ range .MailboxFields }}
