@@ -1,11 +1,5 @@
 # TODO
 
-Overall:
-
-1. Implement
-2. Generalize
-3. Codegen
-
 ## Monitoring
 
 Maybe there's a "thespian runtime" that handles monitoring all actors and
@@ -19,16 +13,16 @@ Want:
 * Useful runtime metrics
   * Expvar integration?
   * channel utilization
-  * agent utilization
+  * actor utilization
 
 ## Communication
 
 Make channels ("connections"?) a first-class type, that must be provided when
-creating a new agent instance.
+creating a new actor instance.
 
 Want:
 
-* Abstraction for channels, too
+* Abstraction for channels, too (mailbox)
 * Some way to support multiple consumers (e.g., multiple demuxes)
 * Flexible polling (so, ignore some messages in some modes)
 
@@ -41,5 +35,73 @@ Misc:
   reference to it
 * move some types to internal/
 * allow Wait to be cancelled with a context
-* NewRuntime -> WithRuntime and automatically wait for zero actors?
 * non-blocking send in Actor.Stop
+* use text.template or something for codegen
+
+# Example
+
+type Foo struct {
+	name    string
+	samples []int
+}
+
+/* user:
+FooMailbox:
+  kind: simple
+  messageType: Foo
+*/
+
+type FooMailbox struct { // gen
+}
+
+type FooSender struct { // gen
+	c chan<- Foo
+}
+
+type FooReceiver struct { // gen
+	c <-chan Foo
+}
+
+type harrisonFord struct { // user
+	fooMailbox FooReceiver
+	names      []string
+}
+
+type harrisonFordSpawner struct { // gen
+	fooMailbox FooMailbox
+	names      []string
+}
+
+func (s harrisonFordSpawner) spawn(rt *Runtime) *HarrisonFord { // gen
+	return nil // automatically creates a private harrisonFord and a HarrisonFord
+}
+
+func NewHarrisonFord(rt *Runtime, names []string) *HarrisonFord {
+	return harrisonFordSpawner{
+		names: names,
+		// can set xxMailbox here if multi-consumer is desired
+	}.spawn(rt)
+}
+
+func (a *harrisonFord) HandleFoo(m Foo) { // user
+	// ...
+}
+
+func (a *harrisonFord) loop() { // gen
+	for {
+		select {
+		// generated snippet:
+		case m := <-a.fooMailbox.c:
+			a.HandleFoo(m)
+			// ...
+		}
+	}
+}
+
+type HarrisonFord struct { // gen
+	fooMailbox FooSender
+}
+
+func (a *HarrisonFord) Foo(m Foo) { // gen
+	a.fooMailbox.c <- m
+}
