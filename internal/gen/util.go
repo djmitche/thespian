@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/types"
 	"os"
+	"strings"
 	"text/template"
 
 	"github.com/iancoleman/strcase"
@@ -20,10 +21,20 @@ func privateIdentifier(s string) string {
 	return strcase.ToLowerCamel(s)
 }
 
+// Replace the suffix in a string.  If the old suffix does not exist in
+// the string, no change occurs and an error is returned.
+func swapSuffix(s, old, new string) (string, error) {
+	if strings.HasSuffix(s, old) {
+		return s[:len(s)-len(old)] + new, nil
+	}
+	return s, fmt.Errorf("%#v does not have suffix %#v", s, old)
+}
+
 func templateFuncs() template.FuncMap {
 	return template.FuncMap{
-		"public":  publicIdentifier,
-		"private": privateIdentifier,
+		"public":     publicIdentifier,
+		"private":    privateIdentifier,
+		"swapSuffix": swapSuffix,
 	}
 }
 

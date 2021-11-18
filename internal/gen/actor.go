@@ -133,7 +133,7 @@ func (def *actorDef) Generate(out *formatter) {
 type {{.PublicName}} struct {
 	stopChan chan<- struct{}
 	{{- range .Mailboxes }}
-	{{private .Name}}Sender {{.Def.SenderName}}
+	{{private .Name}}Sender {{swapSuffix .Def.Name "Mailbox" "Sender" | public}}
 	{{- end }}
 }
 
@@ -157,7 +157,7 @@ func (a {{.PrivateName}}) spawn(rt *thespian.Runtime) *{{.PublicName}} {
 	// TODO: these should be in a builder of some sort
 	{{- range .Mailboxes }}
 	// TODO: generate based on mbox kind
-	{{private .Name}}Mailbox := New{{public .Def.PrivateName}}()
+	{{private .Name}}Mailbox := New{{public .Def.Name}}()
 	{{- end }}
 
 	{{- range .Mailboxes }}

@@ -30,17 +30,8 @@ type mailboxDef struct {
 	// package contining the mailbox definition
 	pkg *packages.Package
 
-	// PrivateName is the name of the private struct
-	PrivateName string
-
-	// PublicName is name of the the public struct
-	PublicName string
-
-	// ReceiverName is the name of the receiver type
-	ReceiverName string
-
-	// SenderName is the name of the sender type
-	SenderName string
+	// Name is the name of the mailbox struct
+	Name string
 
 	// Kind gives the kind of this mailbox
 	Kind MailboxKind
@@ -128,13 +119,10 @@ func NewMailboxDef(pkg *packages.Package, name string) (*mailboxDef, error) {
 
 	// ok, this is an mailbox definition!
 	def := &mailboxDef{
-		pkg:          pkg,
-		PrivateName:  privateIdentifier(name),
-		PublicName:   publicIdentifier(name),
-		SenderName:   strings.Replace(publicIdentifier(name), "Mailbox", "Sender", 1),
-		ReceiverName: strings.Replace(publicIdentifier(name), "Mailbox", "Receiver", 1),
-		Kind:         mailboxKind,
-		MessageType:  messageType,
+		pkg:         pkg,
+		Name:        name,
+		Kind:        mailboxKind,
+		MessageType: messageType,
 	}
 
 	return def, nil
@@ -145,39 +133,41 @@ func (def *mailboxDef) Generate(out *formatter) {
 		panic("undefined kind")
 	}
 
-	var template = template.Must(template.New("mailbox_gen").Parse(`
-// {{.PublicName}} is a mailbox for messages of type {{.MessageType}}.
-type {{.PublicName}} struct {
+	var template = template.Must(template.New("mailbox_gen").Funcs(templateFuncs()).Parse(`
+{{- $sender := swapSuffix .Name "Mailbox" "Sender" | public }}
+{{- $receiver := swapSuffix .Name "Mailbox" "Receiver" | public }}
+// {{public .Name}} is a mailbox for messages of type {{.MessageType}}.
+type {{public .Name}} struct {
 	C chan {{.MessageType}}
 }
 
-func New{{.PublicName}}() {{.PublicName}} {
-	return {{.PublicName}}{
+func New{{public .Name}}() {{public .Name}} {
+	return {{public .Name}}{
 		C: make(chan {{.MessageType}}, 10), // TODO: channel size??
 	}
 }
 
-// Sender creates a {{.SenderName}} for this mailbox
-func (mbox *{{.PublicName}}) Sender() {{.SenderName}} {
-	return {{.SenderName}}{
+// Sender creates a {{$sender}} for this mailbox
+func (mbox *{{public .Name}}) Sender() {{$sender}} {
+	return {{$sender}}{
 		C: mbox.C,
 	}
 }
 
-// Receiver creates a {{.ReceiverName}} for this mailbox
-func (mbox *{{.PublicName}}) Receiver() {{.ReceiverName}} {
-	return {{.ReceiverName}}{
+// Receiver creates a {{$receiver}} for this mailbox
+func (mbox *{{public .Name}}) Receiver() {{$receiver}} {
+	return {{$receiver}}{
 		C: mbox.C,
 	}
 }
 
-// {{.SenderName}} sends to a mailbox for messages of type {{.MessageType}}.
-type {{.SenderName}} struct {
+// {{$sender}} sends to a mailbox for messages of type {{.MessageType}}.
+type {{$sender}} struct {
 	C chan<- {{.MessageType}}
 }
 
-// {{.ReceiverName}} sends to a mailbox for messages of type {{.MessageType}}.
-type {{.ReceiverName}} struct {
+// {{$receiver}} sends to a mailbox for messages of type {{.MessageType}}.
+type {{$receiver}} struct {
 	C <-chan {{.MessageType}}
 }
 `))
