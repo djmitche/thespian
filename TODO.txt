@@ -37,6 +37,10 @@ Misc:
 * non-blocking send in Actor.Stop
 * use text.template or something for codegen
 
+Later:
+* allow build flags for generation
+* use something with fewer deps than cobra (gRPC?!?)
+
 # Example
 
 type Foo struct {

@@ -1,5 +1,7 @@
 package gentest
 
+//go:generate go run ../cmd/thespian actor aggregator
+
 import (
 	"fmt"
 	"log"

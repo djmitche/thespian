@@ -1,14 +1,21 @@
 package gen
 
 import (
+	"fmt"
 	"go/types"
-	"strings"
+	"os"
+
+	"github.com/iancoleman/strcase"
 )
 
 const thespianPackage = "github.com/djmitche/thespian"
 
-func initialCase(s string) string {
-	return strings.ToUpper(s[:1]) + s[1:]
+func publicIdentifier(s string) string {
+	return strcase.ToCamel(s)
+}
+
+func privateIdentifier(s string) string {
+	return strcase.ToLowerCamel(s)
 }
 
 // isFieldOfNamedType determines whether the field is of the given named type.
@@ -40,4 +47,10 @@ func isSendRecvChan(field *types.Var) (bool, string) {
 		return false, ""
 	}
 	return true, ch.Elem().String()
+}
+
+// bail prints the message to stderr and exit
+func bail(format string, a ...interface{}) {
+	fmt.Fprintf(os.Stderr, format+"\n", a...)
+	os.Exit(1)
 }

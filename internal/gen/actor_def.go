@@ -64,7 +64,7 @@ func (def *actorDef) generatePublicMethods(out *formatter) {
 	out.printf("}\n\n")
 
 	for _, ch := range def.channels {
-		ic := initialCase(ch.name)
+		ic := publicIdentifier(ch.name)
 		out.printf("// %s sends the %s message to the actor.\n", ic, ic)
 		out.printf("func (a *%s) %s(m %s) {\n", def.publicName, ic, ch.elementType)
 		out.printf("\ta.%sChan <- m\n", ch.name)
@@ -104,12 +104,12 @@ func (def *actorDef) generateLoopMethod(out *formatter) {
 
 	for _, ch := range def.channels {
 		out.printf("\t\tcase m := <-a.%sChan:\n", ch.name)
-		out.printf("\t\t\ta.handle%s(m)\n", initialCase(ch.name))
+		out.printf("\t\t\ta.handle%s(m)\n", publicIdentifier(ch.name))
 	}
 
 	for _, t := range def.timers {
 		out.printf("\t\tcase m := <-*a.%sTimer.C:\n", t.name)
-		out.printf("\t\t\ta.handle%s(m)\n", initialCase(t.name))
+		out.printf("\t\t\ta.handle%s(m)\n", publicIdentifier(t.name))
 	}
 
 	out.printf("\t\t}\n")

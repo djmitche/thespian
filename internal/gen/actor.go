@@ -4,9 +4,9 @@ package gen
 import (
 	"go/types"
 	"log"
-	"os"
 	"strings"
 
+	"github.com/iancoleman/strcase"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -61,7 +61,7 @@ func TryActorDefFromObject(pkg *packages.Package, obj types.Object) *actorDef {
 	def := &actorDef{
 		pkg:         pkg,
 		privateName: name,
-		publicName:  initialCase(name),
+		publicName:  publicIdentifier(name),
 		channels:    []channel{},
 		timers:      []timer{},
 	}
@@ -88,11 +88,10 @@ func TryActorDefFromObject(pkg *packages.Package, obj types.Object) *actorDef {
 	return def
 }
 
-func Generate() {
+func GenerateActor(typeName string) {
 	pkgs, err := packages.Load(&packages.Config{
-		Mode:       packages.NeedFiles | packages.NeedName | packages.NeedImports | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo,
-		Tests:      false,
-		BuildFlags: os.Args[1:],
+		Mode:  packages.NeedFiles | packages.NeedName | packages.NeedImports | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo,
+		Tests: false,
 	}, ".")
 
 	if err != nil {
@@ -104,27 +103,29 @@ func Generate() {
 	}
 	pkg := pkgs[0]
 
-	out := newFormatter(pkg)
+	typeName = privateIdentifier(typeName)
+	var obj types.Object
+	for i, o := range pkg.TypesInfo.Defs {
+		if i.Name == typeName {
+			obj = o
+			break
+		}
+	}
+	if obj == nil {
+		bail("Type %s not found in this package", typeName)
+	}
+	def := TryActorDefFromObject(pkg, obj)
+	if def == nil {
+		bail("Type %s not valid in this package", typeName)
+	}
+
+	out := newFormatter(pkg, strcase.ToSnake(typeName)+"_thespian_gen.go")
 	out.printf("// code generaged by thespian; DO NOT EDIT\n\n")
 	out.printf("package %s\n\n", pkg.Name)
 	out.printf("import \"%s\"\n\n", thespianPackage)
-
-	atLeastOne := false
-	for _, obj := range pkg.TypesInfo.Defs {
-		if obj == nil {
-			continue
-		}
-		def := TryActorDefFromObject(pkg, obj)
-		if def != nil {
-			def.Generate(out)
-			atLeastOne = true
-		}
+	def.Generate(out)
+	err = out.write()
+	if err != nil {
+		bail("Error: %s", err)
 	}
-
-	if !atLeastOne {
-		log.Printf("No private actor types found in %s; nothing generated", pkg.PkgPath)
-		os.Exit(1)
-	}
-
-	out.write()
 }

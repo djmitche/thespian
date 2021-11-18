@@ -1,13 +1,14 @@
 package gentest
 
+//go:generate go run ../cmd/thespian actor reporter
+
 import (
 	"log"
 
 	"github.com/djmitche/thespian"
 )
 
-// lower-case name is the user-provided, internal struct
-
+// reporter reports aggregated stuff
 type reporter struct {
 	thespian.ActorBase
 

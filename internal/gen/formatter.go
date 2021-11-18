@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"go/format"
 	"io/ioutil"
-	"log"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -15,14 +13,17 @@ import (
 
 // formatter produces formatted Go source
 type formatter struct {
-	pkg *packages.Package
-	buf bytes.Buffer
+	filename string
+	buf      bytes.Buffer
 }
 
 // newFormatter creates a new formatter for the given package
-func newFormatter(pkg *packages.Package) *formatter {
+func newFormatter(pkg *packages.Package, filename string) *formatter {
+	dir := filepath.Dir(pkg.GoFiles[0])
+	filename = filepath.Join(dir, filename)
+
 	return &formatter{
-		pkg: pkg,
+		filename: filename,
 	}
 }
 
@@ -32,21 +33,17 @@ func (f *formatter) printf(format string, args ...interface{}) {
 }
 
 // write the source file to the package
-func (f *formatter) write() {
-	dir := filepath.Dir(f.pkg.GoFiles[0])
-	filename := filepath.Join(dir, "thespian_generated.go")
-
+func (f *formatter) write() error {
 	formatted, err := format.Source(f.buf.Bytes())
 	if err != nil {
 		for i, l := range strings.Split(f.buf.String(), "\n") {
 			fmt.Printf("% 4d: %s\n", i+1, l)
 		}
-		log.Printf("ERROR: generated un-formattable Go: %s", err)
-		os.Exit(1)
+		return fmt.Errorf("generated un-formattable Go: %s", err)
 	}
-	err = ioutil.WriteFile(filename, formatted, 0666)
+	err = ioutil.WriteFile(f.filename, formatted, 0666)
 	if err != nil {
-		log.Printf("ERROR: could not write %s: %s", filename, err)
-		os.Exit(1)
+		return fmt.Errorf("could not write %s: %s", f.filename, err)
 	}
+	return nil
 }
