@@ -20,19 +20,8 @@ type actorDef struct {
 	// PublicName is name of the the public struct
 	PublicName string
 
-	// Timers in this struct
-	Timers []timer
-
 	// Mailboxes in this struct
 	Mailboxes []mailbox
-}
-
-type timer struct {
-	// PublicName is the public name of the timer (without "Timer" suffix)
-	PublicName string
-
-	// PrivateName is the private name of the timer (without "Timer" suffix)
-	PrivateName string
 }
 
 type mailbox struct {
@@ -40,7 +29,7 @@ type mailbox struct {
 	Name string
 
 	// Def is the mailboxDef
-	Def *mailboxDef
+	Def *MailboxDef
 }
 
 // NewActorDef creates a new actor definition based on a type with the given
@@ -91,21 +80,11 @@ func NewActorDef(pkg *packages.Package, name string) (*actorDef, error) {
 		Pkg:         pkg,
 		PrivateName: name,
 		PublicName:  publicIdentifier(name),
-		Timers:      []timer{},
 	}
 
 	for i := 0; i < underlyingStruct.NumFields(); i++ {
 		field := underlyingStruct.Field(i)
 		name := field.Name()
-		if isFieldOfNamedType(field, thespianPackage, "Timer") {
-			if strings.HasSuffix(name, "Timer") {
-				def.Timers = append(def.Timers, timer{
-					PublicName:  publicIdentifier(name[:len(name)-5]),
-					PrivateName: privateIdentifier(name[:len(name)-5]),
-				})
-			}
-		}
-
 		if strings.HasSuffix(name, "Receiver") {
 			_, typeName, err := fieldTypeName(field)
 			if err != nil {
@@ -213,11 +192,6 @@ func (a *{{.PrivateName}}) loop() {
 			a.HandleStop()
 			return
 
-			{{- range .Timers }}
-			case m := <-*a.{{.PrivateName}}Timer.C:
-				a.handle{{.PublicName}}(m)
-			{{- end }}
-
 			{{- range .Mailboxes }}
 			// TODO: generate this based on the mbox kind
 			{{- if eq .Def.Kind "SimpleMailbox" }}
@@ -233,9 +207,6 @@ func (a *{{.PrivateName}}) loop() {
 }
 
 func (a *{{.PrivateName}}) cleanup() {
-	{{- range .Timers }}
-	a.{{.PrivateName}}Timer.Stop()
-	{{- end }}
 	// TODO: clean up mboxes too
 	a.Runtime.ActorStopped(&a.ActorBase)
 }

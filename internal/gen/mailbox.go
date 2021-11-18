@@ -29,7 +29,7 @@ func toMailboxKind(name string) (MailboxKind, error) {
 	}
 }
 
-type mailboxDef struct {
+type MailboxDef struct {
 	// package contining the mailbox definition
 	Pkg *packages.Package
 
@@ -44,14 +44,14 @@ type mailboxDef struct {
 }
 
 // NewMailboxDefForReceiver creates a new mailboxDef for the given receiver type name
-func NewMailboxDefForReceiver(pkg *packages.Package, name string) (*mailboxDef, error) {
+func NewMailboxDefForReceiver(pkg *packages.Package, name string) (*MailboxDef, error) {
 	mailboxName := privateIdentifier(strings.Replace(name, "Receiver", "Mailbox", 1))
 	return NewMailboxDef(pkg, mailboxName)
 }
 
 // NewMailboxDef creates a new mailbox definition based on a type with the given
 // private name.
-func NewMailboxDef(pkg *packages.Package, name string) (*mailboxDef, error) {
+func NewMailboxDef(pkg *packages.Package, name string) (*MailboxDef, error) {
 	obj, err := findTypeDef(pkg, name)
 	if err != nil {
 		return nil, err
@@ -121,7 +121,7 @@ func NewMailboxDef(pkg *packages.Package, name string) (*mailboxDef, error) {
 	messageType := secondField.Type().String()
 
 	// ok, this is an mailbox definition!
-	def := &mailboxDef{
+	def := &MailboxDef{
 		Pkg:         pkg,
 		Name:        name,
 		Kind:        mailboxKind,
@@ -131,7 +131,7 @@ func NewMailboxDef(pkg *packages.Package, name string) (*mailboxDef, error) {
 	return def, nil
 }
 
-func (def *mailboxDef) Generate(out *formatter) {
+func (def *MailboxDef) Generate(out *formatter) {
 	switch def.Kind {
 	case SimpleMailboxKind:
 		def.GenerateSimpleMailbox(out)
@@ -142,7 +142,7 @@ func (def *mailboxDef) Generate(out *formatter) {
 	}
 }
 
-func (def *mailboxDef) GenerateSimpleMailbox(out *formatter) {
+func (def *MailboxDef) GenerateSimpleMailbox(out *formatter) {
 	var template = template.Must(template.New("simple_mailbox_gen").Funcs(templateFuncs()).Parse(`
 {{- $sender := swapSuffix .Name "Mailbox" "Sender" | public }}
 {{- $receiver := swapSuffix .Name "Mailbox" "Receiver" | public }}
@@ -188,7 +188,7 @@ type {{$receiver}} struct {
 	out.executeTemplate(template, def)
 }
 
-func (def *mailboxDef) GenerateTickerMailbox(out *formatter) {
+func (def *MailboxDef) GenerateTickerMailbox(out *formatter) {
 	var template = template.Must(template.New("ticker_mailbox_gen").Funcs(templateFuncs()).Parse(`
 {{- $receiver := swapSuffix .Name "Mailbox" "Receiver" | public }}
 // code generaged by thespian; DO NOT EDIT
