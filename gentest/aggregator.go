@@ -22,8 +22,8 @@ type aggregator struct {
 	// self reference
 	self *Aggregator
 
-	incrReceiver  StringReceiver
-	flushReceiver TickerReceiver
+	incrRx  StringRx
+	flushRx TickerRx
 
 	// instance vars
 	counts     map[string]int
@@ -39,7 +39,7 @@ func NewAggregator(rt *thespian.Runtime, reporterer Reporterer) *Aggregator {
 
 func (a *aggregator) HandleStart() error {
 	log.Printf("start")
-	a.flushReceiver.Ticker = time.NewTicker(2 * time.Second)
+	a.flushRx.Ticker = time.NewTicker(2 * time.Second)
 	return nil
 }
 

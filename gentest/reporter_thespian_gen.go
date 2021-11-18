@@ -11,18 +11,22 @@ import "github.com/djmitche/thespian"
 type Reporter struct {
 	stopChan chan<- struct{}
 	// TODO: generate this based on the mbox kind
-	reportSender StringSliceSender
+	reportTx StringSliceTx
 }
 
-// Stop sends a message to stop the actor.
+// Stop sends a message to stop the actor.  This does not wait until
+// the actor has stopped.
 func (a *Reporter) Stop() {
-	a.stopChan <- struct{}{}
+	select {
+	case a.stopChan <- struct{}{}:
+	default:
+	}
 }
 
 // Report sends to the actor's Report mailbox.
 func (a *Reporter) Report(m []string) {
 	// TODO: generate this based on the mbox kind
-	a.reportSender.C <- m
+	a.reportTx.C <- m
 }
 
 // --- reporter
@@ -33,12 +37,12 @@ func (a reporter) spawn(rt *thespian.Runtime) *Reporter {
 	// TODO: generate based on mbox kind
 	reportMailbox := NewStringSliceMailbox()
 	// TODO: generate based on mbox kind
-	a.reportReceiver = reportMailbox.Receiver()
+	a.reportRx = reportMailbox.Rx()
 
 	handle := &Reporter{
 		stopChan: a.StopChan,
 		// TODO: generate based on mbox kind
-		reportSender: reportMailbox.Sender(),
+		reportTx: reportMailbox.Tx(),
 	}
 	go a.loop()
 	return handle
@@ -57,7 +61,7 @@ func (a *reporter) loop() {
 			a.HandleStop()
 			return
 		// TODO: generate this based on the mbox kind
-		case m := <-a.reportReceiver.C:
+		case m := <-a.reportRx.C:
 			a.handleReport(m)
 		}
 	}

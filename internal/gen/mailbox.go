@@ -43,9 +43,9 @@ type MailboxDef struct {
 	MessageType string
 }
 
-// NewMailboxDefForReceiver creates a new mailboxDef for the given receiver type name
-func NewMailboxDefForReceiver(pkg *packages.Package, name string) (*MailboxDef, error) {
-	mailboxName := privateIdentifier(strings.Replace(name, "Receiver", "Mailbox", 1))
+// NewMailboxDefForRx creates a new mailboxDef for the given receiver type name
+func NewMailboxDefForRx(pkg *packages.Package, name string) (*MailboxDef, error) {
+	mailboxName := privateIdentifier(strings.Replace(name, "Rx", "Mailbox", 1))
 	return NewMailboxDef(pkg, mailboxName)
 }
 
@@ -144,8 +144,8 @@ func (def *MailboxDef) Generate(out *formatter) {
 
 func (def *MailboxDef) GenerateSimpleMailbox(out *formatter) {
 	var template = template.Must(template.New("simple_mailbox_gen").Funcs(templateFuncs()).Parse(`
-{{- $sender := swapSuffix .Name "Mailbox" "Sender" | public }}
-{{- $receiver := swapSuffix .Name "Mailbox" "Receiver" | public }}
+{{- $sender := swapSuffix .Name "Mailbox" "Tx" | public }}
+{{- $receiver := swapSuffix .Name "Mailbox" "Rx" | public }}
 // code generaged by thespian; DO NOT EDIT
 
 package {{.Pkg.Name}}
@@ -161,15 +161,15 @@ func New{{public .Name}}() {{public .Name}} {
 	}
 }
 
-// Sender creates a {{$sender}} for this mailbox
-func (mbox *{{public .Name}}) Sender() {{$sender}} {
+// Tx creates a {{$sender}} for this mailbox
+func (mbox *{{public .Name}}) Tx() {{$sender}} {
 	return {{$sender}}{
 		C: mbox.C,
 	}
 }
 
-// Receiver creates a {{$receiver}} for this mailbox
-func (mbox *{{public .Name}}) Receiver() {{$receiver}} {
+// Rx creates a {{$receiver}} for this mailbox
+func (mbox *{{public .Name}}) Rx() {{$receiver}} {
 	return {{$receiver}}{
 		C: mbox.C,
 	}
@@ -190,7 +190,7 @@ type {{$receiver}} struct {
 
 func (def *MailboxDef) GenerateTickerMailbox(out *formatter) {
 	var template = template.Must(template.New("ticker_mailbox_gen").Funcs(templateFuncs()).Parse(`
-{{- $receiver := swapSuffix .Name "Mailbox" "Receiver" | public }}
+{{- $receiver := swapSuffix .Name "Mailbox" "Rx" | public }}
 // code generaged by thespian; DO NOT EDIT
 
 package {{.Pkg.Name}}
@@ -205,7 +205,7 @@ type {{$receiver}} struct {
 	never chan time.Time
 }
 
-{{- $receiver := swapSuffix .Name "Mailbox" "Receiver" | public }}
+{{- $receiver := swapSuffix .Name "Mailbox" "Rx" | public }}
 func New{{$receiver}}() {{$receiver}} {
 	return {{$receiver}}{
 		Ticker: nil,

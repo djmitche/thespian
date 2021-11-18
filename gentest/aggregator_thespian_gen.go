@@ -11,19 +11,23 @@ import "github.com/djmitche/thespian"
 type Aggregator struct {
 	stopChan chan<- struct{}
 	// TODO: generate this based on the mbox kind
-	incrSender StringSender
+	incrTx StringTx
 	// TODO: generate this based on the mbox kind
 }
 
-// Stop sends a message to stop the actor.
+// Stop sends a message to stop the actor.  This does not wait until
+// the actor has stopped.
 func (a *Aggregator) Stop() {
-	a.stopChan <- struct{}{}
+	select {
+	case a.stopChan <- struct{}{}:
+	default:
+	}
 }
 
 // Incr sends to the actor's Incr mailbox.
 func (a *Aggregator) Incr(m string) {
 	// TODO: generate this based on the mbox kind
-	a.incrSender.C <- m
+	a.incrTx.C <- m
 }
 
 // --- aggregator
@@ -35,14 +39,14 @@ func (a aggregator) spawn(rt *thespian.Runtime) *Aggregator {
 	incrMailbox := NewStringMailbox()
 	// TODO: generate based on mbox kind
 	// TODO: generate based on mbox kind
-	a.incrReceiver = incrMailbox.Receiver()
+	a.incrRx = incrMailbox.Rx()
 	// TODO: generate based on mbox kind
-	a.flushReceiver = NewTickerReceiver()
+	a.flushRx = NewTickerRx()
 
 	handle := &Aggregator{
 		stopChan: a.StopChan,
 		// TODO: generate based on mbox kind
-		incrSender: incrMailbox.Sender(),
+		incrTx: incrMailbox.Tx(),
 		// TODO: generate based on mbox kind
 	}
 	go a.loop()
@@ -62,10 +66,10 @@ func (a *aggregator) loop() {
 			a.HandleStop()
 			return
 		// TODO: generate this based on the mbox kind
-		case m := <-a.incrReceiver.C:
+		case m := <-a.incrRx.C:
 			a.handleIncr(m)
 		// TODO: generate this based on the mbox kind
-		case t := <-a.flushReceiver.Chan():
+		case t := <-a.flushRx.Chan():
 			a.handleFlush(t)
 		}
 	}

@@ -4,16 +4,16 @@ package gentest
 
 import "time"
 
-// TickerReceiver sends to a mailbox for messages of type struct{}.
-type TickerReceiver struct {
+// TickerRx sends to a mailbox for messages of type struct{}.
+type TickerRx struct {
 	// Ticker is the ticker this mailbox responds to, or nil if it is disabled
 	Ticker *time.Ticker
 	// Never is a channel that never carries a message
 	never chan time.Time
 }
 
-func NewTickerReceiver() TickerReceiver {
-	return TickerReceiver{
+func NewTickerRx() TickerRx {
+	return TickerRx{
 		Ticker: nil,
 		// TODO: just use one of these, globally
 		never: make(chan time.Time),
@@ -21,7 +21,7 @@ func NewTickerReceiver() TickerReceiver {
 }
 
 // Chan gets a channel for this ticker
-func (rx *TickerReceiver) Chan() <-chan time.Time {
+func (rx *TickerRx) Chan() <-chan time.Time {
 	if rx.Ticker != nil {
 		return rx.Ticker.C
 	}

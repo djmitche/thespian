@@ -13,26 +13,26 @@ func NewStringSliceMailbox() StringSliceMailbox {
 	}
 }
 
-// Sender creates a StringSliceSender for this mailbox
-func (mbox *StringSliceMailbox) Sender() StringSliceSender {
-	return StringSliceSender{
+// Tx creates a StringSliceTx for this mailbox
+func (mbox *StringSliceMailbox) Tx() StringSliceTx {
+	return StringSliceTx{
 		C: mbox.C,
 	}
 }
 
-// Receiver creates a StringSliceReceiver for this mailbox
-func (mbox *StringSliceMailbox) Receiver() StringSliceReceiver {
-	return StringSliceReceiver{
+// Rx creates a StringSliceRx for this mailbox
+func (mbox *StringSliceMailbox) Rx() StringSliceRx {
+	return StringSliceRx{
 		C: mbox.C,
 	}
 }
 
-// StringSliceSender sends to a mailbox for messages of type []string.
-type StringSliceSender struct {
+// StringSliceTx sends to a mailbox for messages of type []string.
+type StringSliceTx struct {
 	C chan<- []string
 }
 
-// StringSliceReceiver sends to a mailbox for messages of type []string.
-type StringSliceReceiver struct {
+// StringSliceRx sends to a mailbox for messages of type []string.
+type StringSliceRx struct {
 	C <-chan []string
 }

@@ -22,7 +22,7 @@ type actorDef struct {
 }
 
 type MailboxField struct {
-	// Name is the name of the field, without the "Sender" or "Receiver" suffix
+	// Name is the name of the field, without the "Tx" or "Rx" suffix
 	Name string
 
 	// Def is the mailboxDef
@@ -81,17 +81,17 @@ func NewActorDef(pkg *packages.Package, name string) (*actorDef, error) {
 	for i := 0; i < underlyingStruct.NumFields(); i++ {
 		field := underlyingStruct.Field(i)
 		name := field.Name()
-		if strings.HasSuffix(name, "Receiver") {
+		if strings.HasSuffix(name, "Rx") {
 			_, typeName, err := fieldTypeName(field)
 			if err != nil {
 				continue
 			}
-			mboxDef, err := NewMailboxDefForReceiver(pkg, typeName)
+			mboxDef, err := NewMailboxDefForRx(pkg, typeName)
 			if err != nil {
 				return nil, fmt.Errorf("Invalid type for %s: %s", name, err)
 			}
 			def.MailboxFields = append(def.MailboxFields, MailboxField{
-				Name: name[:len(name)-len("Receiver")],
+				Name: name[:len(name)-len("Rx")],
 				Def:  mboxDef,
 			})
 		}
@@ -117,7 +117,7 @@ type {{public .Name}} struct {
 	{{- range .MailboxFields }}
 	// TODO: generate this based on the mbox kind
 	{{- if eq .Def.Kind "SimpleMailbox" }}
-	{{private .Name}}Sender {{swapSuffix .Def.Name "Mailbox" "Sender" | public}}
+	{{private .Name}}Tx {{swapSuffix .Def.Name "Mailbox" "Tx" | public}}
 	{{- else if eq .Def.Kind "TickerMailbox" }}
 	{{- end }}
 	{{- end }}
@@ -137,7 +137,7 @@ func (a *{{public .Name}}) Stop() {
 // {{public .Name}} sends to the actor's {{public .Name}} mailbox.
 func (a *{{public $.Name}}) {{public .Name}}(m {{.Def.MessageType}}) {
 	// TODO: generate this based on the mbox kind
-	a.{{private .Name}}Sender.C <- m
+	a.{{private .Name}}Tx.C <- m
 }
 {{- else if eq .Def.Kind "TickerMailbox" }}
 {{- end }}
@@ -159,9 +159,9 @@ func (a {{private .Name}}) spawn(rt *thespian.Runtime) *{{public .Name}} {
 	{{- range .MailboxFields }}
 	// TODO: generate based on mbox kind
 	{{- if eq .Def.Kind "SimpleMailbox" }}
-	a.{{private .Name}}Receiver = {{private .Name}}Mailbox.Receiver()
+	a.{{private .Name}}Rx = {{private .Name}}Mailbox.Rx()
 	{{- else if eq .Def.Kind "TickerMailbox" }}
-	a.{{private .Name}}Receiver = New{{swapSuffix .Def.Name "Mailbox" "Receiver" | public }}()
+	a.{{private .Name}}Rx = New{{swapSuffix .Def.Name "Mailbox" "Rx" | public }}()
 	{{- end }}
 	{{- end }}
 
@@ -170,7 +170,7 @@ func (a {{private .Name}}) spawn(rt *thespian.Runtime) *{{public .Name}} {
 		{{- range .MailboxFields }}
 		// TODO: generate based on mbox kind
 		{{- if eq .Def.Kind "SimpleMailbox" }}
-		{{private .Name}}Sender: {{private .Name}}Mailbox.Sender(),
+		{{private .Name}}Tx: {{private .Name}}Mailbox.Tx(),
 		{{- else if eq .Def.Kind "TickerMailbox" }}
 		{{- end }}
 		{{- end }}
@@ -195,10 +195,10 @@ func (a *{{private .Name}}) loop() {
 			{{- range .MailboxFields }}
 			// TODO: generate this based on the mbox kind
 			{{- if eq .Def.Kind "SimpleMailbox" }}
-			case m := <-a.{{private .Name}}Receiver.C:
+			case m := <-a.{{private .Name}}Rx.C:
 				a.handle{{public .Name}}(m)
 			{{- else if eq .Def.Kind "TickerMailbox" }}
-			case t := <-a.{{private .Name}}Receiver.Chan():
+			case t := <-a.{{private .Name}}Rx.Chan():
 				a.handle{{public .Name}}(t)
 			{{- end }}
 			{{- end }}

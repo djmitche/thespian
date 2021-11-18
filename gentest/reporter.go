@@ -14,7 +14,7 @@ type reporter struct {
 
 	self *Reporter
 
-	reportReceiver StringSliceReceiver
+	reportRx StringSliceRx
 }
 
 func NewReporter(rt *thespian.Runtime) *Reporter {
