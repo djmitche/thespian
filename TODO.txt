@@ -31,7 +31,6 @@ Want:
 * a way to test this with unit tests and not a program
 
 Misc:
-* move some types to internal/
 * clean up how mailbox types are specified; maybe parse `<path>.FooMailbox`?
 
 Later:
