@@ -11,27 +11,27 @@ type MailboxGenerator interface {
 	ActorCleanupClause() string
 }
 
-func NewMailboxGeneratorForActor(thisPackage, actorName, fieldName string, yml ActorMailboxYml) MailboxGenerator {
+func NewMailboxGeneratorForActor(thisPackage, actorName, fieldName, mboxTypeQual string, yml ActorMailboxYml) MailboxGenerator {
 	switch yml.Kind {
 	case "simple":
 		return &SimpleMailboxGenerator{
-			ThisPackage: thisPackage,
-			MessageType: yml.MessageType,
-			Package:     yml.Package,
-			Type:        yml.Type,
-			ActorName:   actorName,
-			FieldName:   fieldName,
+			ThisPackage:  thisPackage,
+			MessageType:  yml.MessageType,
+			MboxTypeBase: yml.Type,
+			MboxTypeQual: mboxTypeQual,
+			ActorName:    actorName,
+			FieldName:    fieldName,
 		}
 	case "ticker":
 		return &TickerMailboxGenerator{
-			ThisPackage: thisPackage,
-			Package:     yml.Package,
-			Type:        yml.Type,
-			ActorName:   actorName,
-			FieldName:   fieldName,
+			ThisPackage:  thisPackage,
+			MboxTypeBase: yml.Type,
+			MboxTypeQual: mboxTypeQual,
+			ActorName:    actorName,
+			FieldName:    fieldName,
 		}
 	default:
-		bail("unknown template kind %s", yml.Kind)
+		bail("unknown mailbox kind %s", yml.Kind)
 		return nil
 	}
 }
@@ -40,14 +40,14 @@ func NewMailboxGeneratorForMailbox(thisPackage, typeName string, yml MailboxYml)
 	switch yml.Kind {
 	case "simple":
 		return &SimpleMailboxGenerator{
-			ThisPackage: thisPackage,
-			MessageType: yml.MessageType,
-			Type:        typeName,
+			ThisPackage:  thisPackage,
+			MessageType:  yml.MessageType,
+			MboxTypeBase: typeName,
 		}
 	case "ticker":
 		return &TickerMailboxGenerator{
-			ThisPackage: thisPackage,
-			Type:        typeName,
+			ThisPackage:  thisPackage,
+			MboxTypeBase: typeName,
 		}
 	default:
 		bail("unknown template kind %s", yml.Kind)

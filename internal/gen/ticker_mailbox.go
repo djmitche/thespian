@@ -3,14 +3,14 @@ package gen
 import "strings"
 
 type SimpleMailboxGenerator struct {
-	ThisPackage string
-	MessageType string
-	Type        string
+	ThisPackage  string
+	MessageType  string
+	MboxTypeBase string
 
 	// actor generation only
-	Package   string
-	ActorName string
-	FieldName string
+	MboxTypeQual string
+	ActorName    string
+	FieldName    string
 }
 
 func (g *SimpleMailboxGenerator) GenerateGo(out *formatter) {
@@ -20,38 +20,38 @@ func (g *SimpleMailboxGenerator) GenerateGo(out *formatter) {
 
 package {{.ThisPackage}}
 
-// {{public .Type}}Mailbox is a mailbox for messages of type {{.MessageType}}.
-type {{public .Type}}Mailbox struct {
+// {{public .MboxTypeBase}}Mailbox is a mailbox for messages of type {{.MessageType}}.
+type {{public .MboxTypeBase}}Mailbox struct {
 	C chan {{.MessageType}}
 }
 
-func New{{public .Type}}Mailbox() {{public .Type}}Mailbox {
-	return {{public .Type}}Mailbox{
+func New{{public .MboxTypeBase}}Mailbox() {{public .MboxTypeBase}}Mailbox {
+	return {{public .MboxTypeBase}}Mailbox{
 		C: make(chan {{.MessageType}}, 10), // TODO: channel size??
 	}
 }
 
-// Tx creates a {{.Type}}Tx for this mailbox
-func (mbox *{{public .Type}}Mailbox) Tx() {{.Type}}Tx {
-	return {{.Type}}Tx{
+// Tx creates a {{.MboxTypeBase}}Tx for this mailbox
+func (mbox *{{public .MboxTypeBase}}Mailbox) Tx() {{.MboxTypeBase}}Tx {
+	return {{.MboxTypeBase}}Tx{
 		C: mbox.C,
 	}
 }
 
-// Rx creates a {{.Type}}Rx for this mailbox
-func (mbox *{{public .Type}}Mailbox) Rx() {{.Type}}Rx {
-	return {{.Type}}Rx{
+// Rx creates a {{.MboxTypeBase}}Rx for this mailbox
+func (mbox *{{public .MboxTypeBase}}Mailbox) Rx() {{.MboxTypeBase}}Rx {
+	return {{.MboxTypeBase}}Rx{
 		C: mbox.C,
 	}
 }
 
-// {{.Type}}Tx sends to a mailbox for messages of type {{.MessageType}}.
-type {{.Type}}Tx struct {
+// {{.MboxTypeBase}}Tx sends to a mailbox for messages of type {{.MessageType}}.
+type {{.MboxTypeBase}}Tx struct {
 	C chan<- {{.MessageType}}
 }
 
-// {{.Type}}Rx receives from a mailbox for messages of type {{.MessageType}}.
-type {{.Type}}Rx struct {
+// {{.MboxTypeBase}}Rx receives from a mailbox for messages of type {{.MessageType}}.
+type {{.MboxTypeBase}}Rx struct {
 	C <-chan {{.MessageType}}
 }`), g)
 }
@@ -59,7 +59,7 @@ type {{.Type}}Rx struct {
 func (g *SimpleMailboxGenerator) ActorPublicStructDecl() string {
 	return renderTemplate(
 		"simple_actor_public_struct_decl",
-		`{{.FieldName}}Tx {{.Type}}Tx`,
+		`{{.FieldName}}Tx {{.MboxTypeQual}}{{.MboxTypeBase}}Tx`,
 		g)
 }
 
@@ -75,7 +75,7 @@ func (g *SimpleMailboxGenerator) ActorPublicStructMethod() string {
 func (g *SimpleMailboxGenerator) ActorSpawnSetupClause() string {
 	return renderTemplate(
 		"simple_actor_spawn_setup_clause",
-		`{{.FieldName}}Mailbox := New{{.Type}}Mailbox()`,
+		`{{.FieldName}}Mailbox := {{.MboxTypeQual}}New{{.MboxTypeBase}}Mailbox()`,
 		g)
 }
 

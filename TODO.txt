@@ -40,9 +40,11 @@ Misc:
 * copy the private struct in `spawn` so that callers *cannot* maintain a
   reference to it
 * move some types to internal/
-* allow mailbox types not in the same package (still need info on their type)
 * remove use of cobra (not buying anything anymore)
 * cleanup tickers
+* clean up how mailbox types are specified; maybe parse `<path>.FooMailbox`?
+* determine current package (`go list .` or use packages?), use that to figure
+  out imports
 
 Later:
 * allow build flags for generation

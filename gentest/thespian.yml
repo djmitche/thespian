@@ -5,18 +5,16 @@ actors:
       incr:
         kind: simple
         message-type: string
-        package: github.com/djmitche/thespian/gentest
         type: String
       flush:
         kind: ticker
-        package: github.com/djmitche/thespian/gentest
+        import: github.com/djmitche/thespian/mailbox
         type: Ticker
   Reporter:
     mailboxes:
       report:
         kind: simple
         message-type: "[]string"
-        package: github.com/djmitche/thespian/gentest
         type: StringSlice
 
 mailboxes:
@@ -26,5 +24,3 @@ mailboxes:
   StringSlice:
     kind: simple
     message-type: "[]string"
-  Ticker:
-    kind: ticker

@@ -3,13 +3,13 @@ package gen
 import "strings"
 
 type TickerMailboxGenerator struct {
-	ThisPackage string
-	Type        string
+	ThisPackage  string
+	MboxTypeBase string
 
 	// actor generation only
-	Package   string
-	ActorName string
-	FieldName string
+	MboxTypeQual string
+	ActorName    string
+	FieldName    string
 }
 
 func (g *TickerMailboxGenerator) GenerateGo(out *formatter) {
@@ -21,16 +21,16 @@ package {{.ThisPackage}}
 
 import "time"
 
-// {{.Type}}Rx contains a ticker that the actor implementation can control
-type {{.Type}}Rx struct {
+// {{.MboxTypeBase}}Rx contains a ticker that the actor implementation can control
+type {{.MboxTypeBase}}Rx struct {
 	// Ticker is the ticker this mailbox responds to, or nil if it is disabled
 	Ticker *time.Ticker
 	// Never is a channel that never carries a message, used when Ticker is nil
 	never chan time.Time
 }
 
-func New{{.Type}}Rx() {{.Type}}Rx {
-	return {{.Type}}Rx{
+func New{{.MboxTypeBase}}Rx() {{.MboxTypeBase}}Rx {
+	return {{.MboxTypeBase}}Rx{
 		Ticker: nil,
 		// TODO: just use one of these, globally
 		never: make(chan time.Time),
@@ -38,7 +38,7 @@ func New{{.Type}}Rx() {{.Type}}Rx {
 }
 
 // Chan gets a channel for this ticker
-func (rx *{{.Type}}Rx) Chan() <-chan time.Time {
+func (rx *{{.MboxTypeBase}}Rx) Chan() <-chan time.Time {
 	if rx.Ticker != nil {
 		return rx.Ticker.C
 	}
@@ -61,7 +61,7 @@ func (g *TickerMailboxGenerator) ActorSpawnSetupClause() string {
 func (g *TickerMailboxGenerator) ActorSpawnRxAssignmentClause() string {
 	return renderTemplate(
 		"simple_actor_spawn_rx_assignment_clause",
-		`a.{{.FieldName}}Rx = New{{public .Type}}Rx()`,
+		`a.{{.FieldName}}Rx = {{.MboxTypeQual}}New{{public .MboxTypeBase}}Rx()`,
 		g)
 }
 

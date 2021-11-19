@@ -20,7 +20,7 @@ type ActorYml struct {
 type ActorMailboxYml struct {
 	Kind        string `yaml:"kind"`
 	MessageType string `yaml:"message-type"`
-	Package     string `yaml:"package"`
+	Import      string `yaml:"import"`
 	Type        string `yaml:"type"`
 }
 

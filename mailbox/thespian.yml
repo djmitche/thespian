@@ -1,0 +1,4 @@
+package: mailbox
+mailboxes:
+  Ticker:
+    kind: ticker

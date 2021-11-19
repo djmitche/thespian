@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/djmitche/thespian"
+	"github.com/djmitche/thespian/mailbox"
 )
 
 // (naming things is hard)
@@ -21,7 +22,7 @@ type aggregator struct {
 	self *Aggregator
 
 	incrRx  StringRx
-	flushRx TickerRx
+	flushRx mailbox.TickerRx
 
 	// instance vars
 	counts     map[string]int

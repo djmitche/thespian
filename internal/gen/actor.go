@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"fmt"
 	"sort"
 	"text/template"
 )
@@ -14,14 +15,15 @@ type ActorGenerator struct {
 	ThespianPkg string
 	Name        string
 	Mailboxes   []MailboxGenerator
+	Imports     []string
 }
 
 func NewActorGenerator(pkg, name string, yml ActorYml) *ActorGenerator {
 	gen := &ActorGenerator{
 		ThisPackage: pkg,
-		ThespianPkg: thespianPackage,
 		Name:        name,
 		Mailboxes:   nil,
+		Imports:     []string{fmt.Sprintf(`"%s"`, thespianPackage)},
 	}
 
 	// generate a stable order for mailbox fields
@@ -31,10 +33,29 @@ func NewActorGenerator(pkg, name string, yml ActorYml) *ActorGenerator {
 	}
 	sort.Strings(mbFields)
 
+	// imports are named `import1`, `import2`, .., so keep those
+	// names handy, mapping package -> name
+	importNames := map[string]string{
+		thespianPackage: "thespian",
+	}
+
 	for _, fieldName := range mbFields {
 		actorMailboxYml := yml.Mailboxes[fieldName]
+		// TODO: strip a "Mailbox" prefix here
+		typeQual := ""
+		if actorMailboxYml.Import != "" {
+			var shortName string
+			shortName, found := importNames[actorMailboxYml.Import]
+			if !found {
+				shortName = fmt.Sprintf("import%d", len(gen.Imports))
+				gen.Imports = append(gen.Imports,
+					fmt.Sprintf(`%s "%s"`, shortName, actorMailboxYml.Import))
+				importNames[actorMailboxYml.Import] = shortName
+			}
+			typeQual = fmt.Sprintf("%s.", shortName)
+		}
 		gen.Mailboxes = append(gen.Mailboxes,
-			NewMailboxGeneratorForActor(pkg, name, fieldName, actorMailboxYml))
+			NewMailboxGeneratorForActor(pkg, name, fieldName, typeQual, actorMailboxYml))
 	}
 
 	return gen
@@ -47,7 +68,11 @@ func (g *ActorGenerator) GenerateGo(out *formatter) {
 
 package {{.ThisPackage}}
 
-import "{{.ThespianPkg}}"
+import (
+	{{- range .Imports }}
+	{{ . }}
+	{{- end }}
+)
 
 // --- {{public .Name}}
 
