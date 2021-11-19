@@ -32,7 +32,7 @@ type StringTx struct {
 	C chan<- string
 }
 
-// StringRx sends to a mailbox for messages of type string.
+// StringRx receives from a mailbox for messages of type string.
 type StringRx struct {
 	C <-chan string
 }

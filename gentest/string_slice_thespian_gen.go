@@ -32,7 +32,7 @@ type StringSliceTx struct {
 	C chan<- []string
 }
 
-// StringSliceRx sends to a mailbox for messages of type []string.
+// StringSliceRx receives from a mailbox for messages of type []string.
 type StringSliceRx struct {
 	C <-chan []string
 }

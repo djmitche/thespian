@@ -1,0 +1,30 @@
+package: gentest
+actors:
+  Aggregator:
+    mailboxes:
+      incr:
+        kind: simple
+        message-type: string
+        package: github.com/djmitche/thespian/gentest
+        type: String
+      flush:
+        kind: ticker
+        package: github.com/djmitche/thespian/gentest
+        type: Ticker
+  Reporter:
+    mailboxes:
+      report:
+        kind: simple
+        message-type: "[]string"
+        package: github.com/djmitche/thespian/gentest
+        type: StringSlice
+
+mailboxes:
+  String:
+    kind: simple
+    message-type: string
+  StringSlice:
+    kind: simple
+    message-type: "[]string"
+  Ticker:
+    kind: ticker

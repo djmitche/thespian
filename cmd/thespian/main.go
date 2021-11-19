@@ -12,25 +12,12 @@ var rootCmd = &cobra.Command{
 	Short: "Thespian code-generation tool",
 }
 
-var actorCmd = &cobra.Command{
-	Use:        "actor [flags] TypeName",
-	Short:      "Generate an actor definition in this package based on the private type with the given name",
-	Args:       cobra.ExactArgs(1),
-	ArgAliases: []string{"typeName"},
+var generateCmd = &cobra.Command{
+	Use:   "generate [flags]",
+	Short: "Generate type definitions based on thespian.yml in this directory",
+	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		typeName := args[0]
-		gen.GenerateActor(typeName)
-	},
-}
-
-var mailboxCmd = &cobra.Command{
-	Use:        "mailbox [flags] TypeName",
-	Short:      "Generate an mailbox definition in this package based on the private type with the given name",
-	Args:       cobra.ExactArgs(1),
-	ArgAliases: []string{"typeName"},
-	Run: func(cmd *cobra.Command, args []string) {
-		typeName := args[0]
-		gen.GenerateMailbox(typeName)
+		gen.Generate()
 	},
 }
 
@@ -38,8 +25,7 @@ func main() {
 	log.SetFlags(0)
 	log.SetPrefix("thespian: ")
 
-	rootCmd.AddCommand(actorCmd)
-	rootCmd.AddCommand(mailboxCmd)
+	rootCmd.AddCommand(generateCmd)
 
 	cobra.CheckErr(rootCmd.Execute())
 }

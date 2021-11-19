@@ -1,7 +1,5 @@
 package gentest
 
-//go:generate go run ../cmd/thespian actor reporter
-
 import (
 	"log"
 

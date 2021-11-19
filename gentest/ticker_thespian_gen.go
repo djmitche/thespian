@@ -4,11 +4,11 @@ package gentest
 
 import "time"
 
-// TickerRx sends to a mailbox for messages of type struct{}.
+// TickerRx contains a ticker that the actor implementation can control
 type TickerRx struct {
 	// Ticker is the ticker this mailbox responds to, or nil if it is disabled
 	Ticker *time.Ticker
-	// Never is a channel that never carries a message
+	// Never is a channel that never carries a message, used when Ticker is nil
 	never chan time.Time
 }
 

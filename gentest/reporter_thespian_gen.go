@@ -2,7 +2,6 @@
 
 package gentest
 
-// TODO: use variable
 import "github.com/djmitche/thespian"
 
 // --- Reporter
@@ -23,7 +22,7 @@ func (a *Reporter) Stop() {
 	}
 }
 
-// Report sends to the actor's Report mailbox.
+// Report sends to the actor's report mailbox.
 func (a *Reporter) Report(m []string) {
 	// TODO: generate this based on the mbox kind
 	a.reportTx.C <- m
@@ -34,14 +33,11 @@ func (a *Reporter) Report(m []string) {
 func (a reporter) spawn(rt *thespian.Runtime) *Reporter {
 	rt.Register(&a.ActorBase)
 	// TODO: these should be in a builder of some sort
-	// TODO: generate based on mbox kind
 	reportMailbox := NewStringSliceMailbox()
-	// TODO: generate based on mbox kind
 	a.reportRx = reportMailbox.Rx()
 
 	handle := &Reporter{
 		stopChan: a.StopChan,
-		// TODO: generate based on mbox kind
 		reportTx: reportMailbox.Tx(),
 	}
 	go a.loop()

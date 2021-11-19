@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"go/format"
 	"io/ioutil"
-	"path/filepath"
 	"strings"
 	"text/template"
-
-	"golang.org/x/tools/go/packages"
 )
 
 // formatter produces formatted Go source
@@ -19,10 +16,7 @@ type formatter struct {
 }
 
 // newFormatter creates a new formatter for the given package
-func newFormatter(pkg *packages.Package, filename string) *formatter {
-	dir := filepath.Dir(pkg.GoFiles[0])
-	filename = filepath.Join(dir, filename)
-
+func newFormatter(filename string) *formatter {
 	return &formatter{
 		filename: filename,
 	}
