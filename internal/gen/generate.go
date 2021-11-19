@@ -14,6 +14,7 @@ type ThespianYml struct {
 }
 
 type ActorYml struct {
+	Test      bool                       `yaml:"test"`
 	Mailboxes map[string]ActorMailboxYml `yaml:"mailboxes"`
 }
 
@@ -25,6 +26,7 @@ type ActorMailboxYml struct {
 }
 
 type MailboxYml struct {
+	Test        bool   `yaml:"test"`
 	Kind        string `yaml:"kind"`
 	MessageType string `yaml:"message-type"`
 }
@@ -49,8 +51,15 @@ func Generate() {
 		bail("Could not parse thespian.yml: %s", err)
 	}
 
+	filename := func(typeName string, test bool) string {
+		if test {
+			return strcase.ToSnake(typeName) + "_thespian_gen_test.go"
+		}
+		return strcase.ToSnake(typeName) + "_thespian_gen.go"
+	}
+
 	for actorName, actor := range yml.Actors {
-		out := newFormatter(strcase.ToSnake(actorName) + "_thespian_gen.go")
+		out := newFormatter(filename(actorName, actor.Test))
 		actGen := NewActorGenerator(thisPackageName, actorName, actor)
 		actGen.GenerateGo(out)
 		err = out.write()
@@ -60,7 +69,7 @@ func Generate() {
 	}
 
 	for mboxName, mbox := range yml.Mailboxes {
-		out := newFormatter(strcase.ToSnake(mboxName) + "_thespian_gen.go")
+		out := newFormatter(filename(mboxName, mbox.Test))
 		mbGen := NewMailboxGeneratorForMailbox(thisPackageName, mboxName, mbox)
 		mbGen.GenerateGo(out)
 		err = out.write()

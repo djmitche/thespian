@@ -1,3 +1,9 @@
+# Notes
+
+## Issues
+
+Order is not defined between message types -- at least makes testing hard
+
 # TODO
 
 ## Monitoring
@@ -29,53 +35,13 @@ Want:
 ## Tasks
 
 * a way to test this with unit tests and not a program
+* more mailbox types
+  * RPC (blocking, with sync channel)
+  * Timer (heap of times with callbacks)
+* mix context in here somehow
 
 Misc:
 * clean up how mailbox types are specified; maybe parse `<path>.FooMailbox`?
 
 Later:
 * allow build flags for generation
-
-### example
-
-package thespian
-
-type HarrisonFordBuilder struct { //gen
-	harrisonFord
-
-	frob FooMailbox
-	bing BarMailbox
-}
-
-type HarrisonFordTx struct { // gen
-	frob FooTx
-	bing BarTx
-}
-
-func (tx *HarrisonFordTx) Frob(m Foo) {
-	// ...
-}
-
-func (tx *HarrisonFordTx) Bing(m Bar) {
-	// ...
-}
-
-type harrisonFordRx struct { // gen
-	frob FooRx
-	bing FooRx
-}
-
-type harrisonFord struct { // user
-	tx         *HarrisonFordTx
-	rx         *HarrisonFordRx
-	userField1 string
-	userField2 string
-}
-
-func (hf *harrisonFord) handleFrob(m Foo) {
-	hf.rx.frob.Disable()
-	hf.tx.Bing(Bar{})
-}
-
-func (hf *harrisonFord) handleBing(m Bar) {
-}
