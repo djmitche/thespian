@@ -17,7 +17,7 @@ Want:
 
 ## Communication
 
-Make channels ("connections"?) a first-class type, that must be provided when
+Make channels ("mailboxes") a first-class type, that must be provided when
 creating a new actor instance.
 
 Want:
@@ -29,12 +29,6 @@ Want:
 ## Tasks
 
 * figure out how to sub-template based on mbox kind
-* generate from thespian.yml (or toml or something) in the package dir, to
-  avoid parsing go at all
-  * parsing go leads to weird needs to run the script twice
-  * actor mailboxes should give kind, (for message-based) mailbox type name, message type
-    * some mailbox type names are predefined (e.g., Timer)
-  * (can't always refer to types in other packages as they may not include .yml)
 * builder pattern for actors
   * but keep the Rx fields in the user-defined struct, as they can have
     methods (settings for ticker or timer, enable/disable for channels)
@@ -48,8 +42,7 @@ Misc:
   reference to it
 * move some types to internal/
 * allow mailbox types not in the same package (still need info on their type)
+* remove use of cobra (not buying anything anymore)
 
 Later:
 * allow build flags for generation
-* use something with fewer deps than cobra (gRPC?!?)
-
