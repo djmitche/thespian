@@ -37,8 +37,6 @@ Misc:
 * remove use of cobra (not buying anything anymore)
 * cleanup tickers
 * clean up how mailbox types are specified; maybe parse `<path>.FooMailbox`?
-* determine current package (`go list .` or use packages?), use that to figure
-  out imports
 
 Later:
 * allow build flags for generation

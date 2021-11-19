@@ -4,11 +4,11 @@ import (
 	"io/ioutil"
 
 	"github.com/iancoleman/strcase"
+	"golang.org/x/tools/go/packages"
 	"gopkg.in/yaml.v2"
 )
 
 type ThespianYml struct {
-	Package   string                `yaml:"package"`
 	Actors    map[string]ActorYml   `yaml:"actors"`
 	Mailboxes map[string]MailboxYml `yaml:"mailboxes"`
 }
@@ -30,6 +30,14 @@ type MailboxYml struct {
 }
 
 func Generate() {
+	// get the name of the current package
+	cfg := &packages.Config{Mode: packages.NeedName}
+	pkgs, err := packages.Load(cfg)
+	if err != nil {
+		bail("Could not determine current package")
+	}
+	thisPackageName := pkgs[0].Name
+
 	rawYml, err := ioutil.ReadFile("thespian.yml")
 	if err != nil {
 		bail("Could not load thespian.yml: %s", err)
@@ -41,9 +49,9 @@ func Generate() {
 		bail("Could not parse thespian.yml: %s", err)
 	}
 
-	for name, actor := range yml.Actors {
-		out := newFormatter(strcase.ToSnake(name) + "_thespian_gen.go")
-		actGen := NewActorGenerator(yml.Package, name, actor)
+	for actorName, actor := range yml.Actors {
+		out := newFormatter(strcase.ToSnake(actorName) + "_thespian_gen.go")
+		actGen := NewActorGenerator(thisPackageName, actorName, actor)
 		actGen.GenerateGo(out)
 		err = out.write()
 		if err != nil {
@@ -51,9 +59,9 @@ func Generate() {
 		}
 	}
 
-	for name, mbox := range yml.Mailboxes {
-		out := newFormatter(strcase.ToSnake(name) + "_thespian_gen.go")
-		mbGen := NewMailboxGeneratorForMailbox(yml.Package, name, mbox)
+	for mboxName, mbox := range yml.Mailboxes {
+		out := newFormatter(strcase.ToSnake(mboxName) + "_thespian_gen.go")
+		mbGen := NewMailboxGeneratorForMailbox(thisPackageName, mboxName, mbox)
 		mbGen.GenerateGo(out)
 		err = out.write()
 		if err != nil {
