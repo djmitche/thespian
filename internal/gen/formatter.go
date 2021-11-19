@@ -22,11 +22,6 @@ func newFormatter(filename string) *formatter {
 	}
 }
 
-// add content to the source file
-func (f *formatter) printf(format string, args ...interface{}) {
-	fmt.Fprintf(&f.buf, format, args...)
-}
-
 func (f *formatter) executeTemplate(tpl *template.Template, data interface{}) {
 	err := tpl.Execute(&f.buf, data)
 	if err != nil {

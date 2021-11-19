@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"bytes"
 	"fmt"
 	"go/types"
 	"os"
@@ -84,4 +85,20 @@ func isSendRecvChan(field *types.Var) (bool, string) {
 func bail(format string, a ...interface{}) {
 	fmt.Fprintf(os.Stderr, format+"\n", a...)
 	os.Exit(1)
+}
+
+func getTemplate(name, tpl string) *template.Template {
+	// TODO: caching
+	return template.Must(template.New(name).Funcs(templateFuncs()).Parse(tpl))
+}
+
+// Render the given template to a string, bailing on any errors.
+func renderTemplate(name, tpl string, vars interface{}) string {
+	compiled := getTemplate(name, tpl)
+	var buf bytes.Buffer
+	err := compiled.Execute(&buf, vars)
+	if err != nil {
+		bail("Error rendering template %s: %s", name, err)
+	}
+	return buf.String()
 }

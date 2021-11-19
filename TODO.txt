@@ -28,7 +28,6 @@ Want:
 
 ## Tasks
 
-* figure out how to sub-template based on mbox kind
 * builder pattern for actors
   * but keep the Rx fields in the user-defined struct, as they can have
     methods (settings for ticker or timer, enable/disable for channels)
@@ -43,6 +42,7 @@ Misc:
 * move some types to internal/
 * allow mailbox types not in the same package (still need info on their type)
 * remove use of cobra (not buying anything anymore)
+* cleanup tickers
 
 Later:
 * allow build flags for generation

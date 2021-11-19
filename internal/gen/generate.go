@@ -43,7 +43,8 @@ func Generate() {
 
 	for name, actor := range yml.Actors {
 		out := newFormatter(strcase.ToSnake(name) + "_thespian_gen.go")
-		actor.Generate(yml.Package, name, out)
+		actGen := NewActorGenerator(yml.Package, name, actor)
+		actGen.GenerateGo(out)
 		err = out.write()
 		if err != nil {
 			bail("Error: %s", err)
@@ -52,7 +53,8 @@ func Generate() {
 
 	for name, mbox := range yml.Mailboxes {
 		out := newFormatter(strcase.ToSnake(name) + "_thespian_gen.go")
-		mbox.Generate(yml.Package, name, out)
+		mbGen := NewMailboxGeneratorForMailbox(yml.Package, name, mbox)
+		mbGen.GenerateGo(out)
 		err = out.write()
 		if err != nil {
 			bail("Error: %s", err)

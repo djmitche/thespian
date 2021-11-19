@@ -9,7 +9,6 @@ import "github.com/djmitche/thespian"
 // Reporter is the public handle for reporter actors.
 type Reporter struct {
 	stopChan chan<- struct{}
-	// TODO: generate this based on the mbox kind
 	reportTx StringSliceTx
 }
 
@@ -24,7 +23,6 @@ func (a *Reporter) Stop() {
 
 // Report sends to the actor's report mailbox.
 func (a *Reporter) Report(m []string) {
-	// TODO: generate this based on the mbox kind
 	a.reportTx.C <- m
 }
 
@@ -56,7 +54,6 @@ func (a *reporter) loop() {
 		case <-a.StopChan:
 			a.HandleStop()
 			return
-		// TODO: generate this based on the mbox kind
 		case m := <-a.reportRx.C:
 			a.handleReport(m)
 		}
@@ -64,6 +61,6 @@ func (a *reporter) loop() {
 }
 
 func (a *reporter) cleanup() {
-	// TODO: clean up mboxes too
+
 	a.Runtime.ActorStopped(&a.ActorBase)
 }
