@@ -2,46 +2,60 @@
 
 ## Issues
 
-Order is not defined between message types -- at least makes testing hard
-
-# TODO
+Order is not defined between message types.  This makes testing hard.
 
 ## Monitoring
 
-Maybe there's a "thespian runtime" that handles monitoring all actors and
-ensuring the various invariants.
+Have:
 
-Want:
+A Runtime that is aware of all running actors and monitors their health.
 
-* Build monitor support similar to Erlang's
+Future:
+
+* Monitor support similar to Erlang's
   * something like link so we can build supervisors
-  * Health monitoring to kill "stuck" actors
+  * send health failures to supervisors
 * Useful runtime metrics
   * Expvar integration?
   * channel utilization
   * actor utilization
 
+## Isolation
+
+The actor spawn process copies the initial actor data, making it difficult to
+share data with a running actor.
+
 ## Communication
 
-Make channels ("mailboxes") a first-class type, that must be provided when
-creating a new actor instance.
+Communication between actors is abstracted into Mailboxes, which have Tx and
+Rx pairs that are split at spawn time.  If desired, a single Mailbox can be
+used with multiple actors, resulting in a MPMC connection (multiple actors
+pulling from the same mailbox).
 
-Want:
+Timers are handled as a special kind of Mailbox with no Tx side.  Actors can
+manipulate mailboxes as they see fit, including settings timers or
+enabling/disabling polling of channels.
 
-* Abstraction for channels, too (mailbox)
-* Some way to support multiple consumers (e.g., multiple demuxes)
-* Flexible polling (so, ignore some messages in some modes)
+# TODO
 
-## Tasks
-
-* a way to test this with unit tests and not a program
+* supervision
+* implement a fake dsd
 * more mailbox types
   * RPC (blocking, with sync channel)
   * Timer (heap of times with callbacks)
-* mix context in here somehow
+  * Listener (rx Conn)
+  * Connection (rx buffers)
+* mix Context in here somehow
+  * in the RPC mailbox
+  * Get a context that will end on actor stop?
 
 Misc:
-* clean up how mailbox types are specified; maybe parse `<path>.FooMailbox`?
+* better handling of "never" channel
 
 Later:
 * allow build flags for generation
+* clean up how mailbox types are specified; maybe parse `<path>.FooMailbox`?
+  * determine kind automatically where possible, otherwise require for actor
+    def
+* add some more predefined mailbox types (string, int, struct{}, etc.)
+* document thespian.yml
