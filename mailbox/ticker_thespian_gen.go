@@ -27,3 +27,10 @@ func (rx *TickerRx) Chan() <-chan time.Time {
 	}
 	return rx.never
 }
+
+// Close stops this ticker.  This is called automatically on agent stop.
+func (rx *TickerRx) Close() {
+	if rx.Ticker != nil {
+		rx.Ticker.Stop()
+	}
+}

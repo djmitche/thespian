@@ -8,20 +8,23 @@ import (
 
 // reporter reports aggregated stuff
 type reporter struct {
-	thespian.ActorBase
-
-	self *Reporter
-
-	reportRx StringSliceRx
+	rt *thespian.Runtime
+	tx *ReporterTx
+	rx *ReporterRx
 }
 
-func NewReporter(rt *thespian.Runtime) *Reporter {
-	return reporter{}.spawn(rt)
+func NewReporter(rt *thespian.Runtime) *ReporterTx {
+	return ReporterBuilder{}.spawn(rt)
 }
 
-func (a *reporter) handleReport(lines []string) error {
+func (a *reporter) handleStart() {
+}
+
+func (a *reporter) handleStop() {
+}
+
+func (a *reporter) handleReport(lines []string) {
 	for _, l := range lines {
 		log.Printf("%s\n", l)
 	}
-	return nil
 }

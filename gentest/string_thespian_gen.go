@@ -7,9 +7,11 @@ type StringMailbox struct {
 	C chan string
 }
 
-func NewStringMailbox() StringMailbox {
-	return StringMailbox{
-		C: make(chan string, 10), // TODO: channel size??
+// ApplyDefaults applies default settings to this String, if
+// the struct has its zero value.
+func (mbox *StringMailbox) ApplyDefaults() {
+	if mbox.C == nil {
+		mbox.C = make(chan string, 10) // default channel size
 	}
 }
 

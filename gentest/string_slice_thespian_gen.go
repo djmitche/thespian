@@ -7,9 +7,11 @@ type StringSliceMailbox struct {
 	C chan []string
 }
 
-func NewStringSliceMailbox() StringSliceMailbox {
-	return StringSliceMailbox{
-		C: make(chan []string, 10), // TODO: channel size??
+// ApplyDefaults applies default settings to this StringSlice, if
+// the struct has its zero value.
+func (mbox *StringSliceMailbox) ApplyDefaults() {
+	if mbox.C == nil {
+		mbox.C = make(chan []string, 10) // default channel size
 	}
 }
 

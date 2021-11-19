@@ -43,14 +43,43 @@ func (rx *{{.MboxTypeBase}}Rx) Chan() <-chan time.Time {
 		return rx.Ticker.C
 	}
 	return rx.never
+}
+
+// Close stops this ticker.  This is called automatically on agent stop.
+func (rx *{{.MboxTypeBase}}Rx) Close() {
+	if rx.Ticker != nil {
+		rx.Ticker.Stop()
+	}
 }`), g)
 }
 
-func (g *TickerMailboxGenerator) ActorPublicStructDecl() string {
+func (g *TickerMailboxGenerator) ActorBuilderStructDecl() string {
 	return ""
 }
 
-func (g *TickerMailboxGenerator) ActorPublicStructMethod() string {
+func (g *TickerMailboxGenerator) ActorRxStructDecl() string {
+	return renderTemplate(
+		"ticker_actor_rx_struct_decl",
+		`{{.FieldName}} {{.MboxTypeQual}}{{.MboxTypeBase}}Rx`,
+		g)
+}
+
+func (g *TickerMailboxGenerator) ActorRxInitializer() string {
+	return renderTemplate(
+		"ticker_actor_rx_initializer",
+		`{{.FieldName}}: {{.MboxTypeQual}}New{{.MboxTypeBase}}Rx(),`,
+		g)
+}
+
+func (g *TickerMailboxGenerator) ActorTxStructDecl() string {
+	return ""
+}
+
+func (g *TickerMailboxGenerator) ActorTxInitializer() string {
+	return ""
+}
+
+func (g *TickerMailboxGenerator) ActorTxStructMethod() string {
 	return ""
 }
 
@@ -58,26 +87,17 @@ func (g *TickerMailboxGenerator) ActorSpawnSetupClause() string {
 	return ""
 }
 
-func (g *TickerMailboxGenerator) ActorSpawnRxAssignmentClause() string {
-	return renderTemplate(
-		"simple_actor_spawn_rx_assignment_clause",
-		`a.{{.FieldName}}Rx = {{.MboxTypeQual}}New{{public .MboxTypeBase}}Rx()`,
-		g)
-}
-
-func (g *TickerMailboxGenerator) ActorSpawnHandleInitializer() string {
-	return ""
-}
-
 func (g *TickerMailboxGenerator) ActorLoopCase() string {
 	return renderTemplate(
-		"simple_actor_spawn_loop_case", strings.TrimSpace(`
-			case t := <-a.{{.FieldName}}Rx.Chan():
+		"ticker_actor_loop_case", strings.TrimSpace(`
+			case t := <-rx.{{.FieldName}}.Chan():
 				a.handle{{public .FieldName}}(t)
 		`), g)
 }
 
 func (g *TickerMailboxGenerator) ActorCleanupClause() string {
-	// TODO
-	return ""
+	return renderTemplate(
+		"ticker_actor_cleanup_clause", strings.TrimSpace(`
+			rx.{{.FieldName}}.Close()
+		`), g)
 }

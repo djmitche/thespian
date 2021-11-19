@@ -6,17 +6,56 @@ import (
 	"github.com/djmitche/thespian"
 )
 
-// --- Reporter
+// ReporterBuilder is used to buidl new Reporter actors.
+type ReporterBuilder struct {
+	reporter
+	report StringSliceMailbox
+}
 
-// Reporter is the public handle for reporter actors.
-type Reporter struct {
+func (bldr ReporterBuilder) spawn(rt *thespian.Runtime) *ReporterTx {
+	reg := rt.Register()
+	bldr.report.ApplyDefaults()
+
+	rx := &ReporterRx{
+		id:         reg.ID,
+		stopChan:   reg.StopChan,
+		healthChan: reg.HealthChan,
+		report:     bldr.report.Rx(),
+	}
+
+	tx := &ReporterTx{
+		stopChan: reg.StopChan,
+		report:   bldr.report.Tx(),
+	}
+
+	// copy to a new reporter instance
+	pvt := bldr.reporter
+	pvt.rt = rt
+	pvt.rx = rx
+	pvt.tx = tx
+
+	go pvt.loop()
+	return tx
+}
+
+// ReporterRx contains the Rx sides of the mailboxes, for access from the
+// Reporter implementation.
+type ReporterRx struct {
+	id         uint64
+	stopChan   <-chan struct{}
+	healthChan <-chan struct{}
+	report     StringSliceRx
+}
+
+// ReporterTx is the public handle for Reporter actors.
+type ReporterTx struct {
 	stopChan chan<- struct{}
-	reportTx StringSliceTx
+	report   StringSliceTx
 }
 
 // Stop sends a message to stop the actor.  This does not wait until
 // the actor has stopped.
-func (a *Reporter) Stop() {
+func (a *ReporterTx) Stop() {
 	select {
 	case a.stopChan <- struct{}{}:
 	default:
@@ -24,45 +63,26 @@ func (a *Reporter) Stop() {
 }
 
 // Report sends to the actor's report mailbox.
-func (a *Reporter) Report(m []string) {
-	a.reportTx.C <- m
-}
-
-// --- reporter
-
-func (a reporter) spawn(rt *thespian.Runtime) *Reporter {
-	rt.Register(&a.ActorBase)
-	// TODO: these should be in a builder of some sort
-	reportMailbox := NewStringSliceMailbox()
-	a.reportRx = reportMailbox.Rx()
-
-	handle := &Reporter{
-		stopChan: a.StopChan,
-		reportTx: reportMailbox.Tx(),
-	}
-	go a.loop()
-	return handle
+func (tx *ReporterTx) Report(m []string) {
+	tx.report.C <- m
 }
 
 func (a *reporter) loop() {
+	rx := a.rx
 	defer func() {
-		a.cleanup()
+
+		a.rt.ActorStopped(a.rx.id)
 	}()
-	a.HandleStart()
+	a.handleStart()
 	for {
 		select {
-		case <-a.HealthChan:
+		case <-rx.healthChan: // TODO
 			// nothing to do
-		case <-a.StopChan:
-			a.HandleStop()
+		case <-rx.stopChan:
+			a.handleStop()
 			return
-		case m := <-a.reportRx.C:
+		case m := <-rx.report.C:
 			a.handleReport(m)
 		}
 	}
-}
-
-func (a *reporter) cleanup() {
-
-	a.Runtime.ActorStopped(&a.ActorBase)
 }

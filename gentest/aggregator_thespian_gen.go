@@ -7,18 +7,62 @@ import (
 	import1 "github.com/djmitche/thespian/mailbox"
 )
 
-// --- Aggregator
+// AggregatorBuilder is used to buidl new Aggregator actors.
+type AggregatorBuilder struct {
+	aggregator
 
-// Aggregator is the public handle for aggregator actors.
-type Aggregator struct {
+	incr StringMailbox
+}
+
+func (bldr AggregatorBuilder) spawn(rt *thespian.Runtime) *AggregatorTx {
+	reg := rt.Register()
+
+	bldr.incr.ApplyDefaults()
+
+	rx := &AggregatorRx{
+		id:         reg.ID,
+		stopChan:   reg.StopChan,
+		healthChan: reg.HealthChan,
+		flush:      import1.NewTickerRx(),
+		incr:       bldr.incr.Rx(),
+	}
+
+	tx := &AggregatorTx{
+		stopChan: reg.StopChan,
+
+		incr: bldr.incr.Tx(),
+	}
+
+	// copy to a new aggregator instance
+	pvt := bldr.aggregator
+	pvt.rt = rt
+	pvt.rx = rx
+	pvt.tx = tx
+
+	go pvt.loop()
+	return tx
+}
+
+// AggregatorRx contains the Rx sides of the mailboxes, for access from the
+// Aggregator implementation.
+type AggregatorRx struct {
+	id         uint64
+	stopChan   <-chan struct{}
+	healthChan <-chan struct{}
+	flush      import1.TickerRx
+	incr       StringRx
+}
+
+// AggregatorTx is the public handle for Aggregator actors.
+type AggregatorTx struct {
 	stopChan chan<- struct{}
 
-	incrTx StringTx
+	incr StringTx
 }
 
 // Stop sends a message to stop the actor.  This does not wait until
 // the actor has stopped.
-func (a *Aggregator) Stop() {
+func (a *AggregatorTx) Stop() {
 	select {
 	case a.stopChan <- struct{}{}:
 	default:
@@ -26,50 +70,29 @@ func (a *Aggregator) Stop() {
 }
 
 // Incr sends to the actor's incr mailbox.
-func (a *Aggregator) Incr(m string) {
-	a.incrTx.C <- m
-}
-
-// --- aggregator
-
-func (a aggregator) spawn(rt *thespian.Runtime) *Aggregator {
-	rt.Register(&a.ActorBase)
-	// TODO: these should be in a builder of some sort
-
-	incrMailbox := NewStringMailbox()
-	a.flushRx = import1.NewTickerRx()
-	a.incrRx = incrMailbox.Rx()
-
-	handle := &Aggregator{
-		stopChan: a.StopChan,
-
-		incrTx: incrMailbox.Tx(),
-	}
-	go a.loop()
-	return handle
+func (tx *AggregatorTx) Incr(m string) {
+	tx.incr.C <- m
 }
 
 func (a *aggregator) loop() {
+	rx := a.rx
 	defer func() {
-		a.cleanup()
+		rx.flush.Close()
+
+		a.rt.ActorStopped(a.rx.id)
 	}()
-	a.HandleStart()
+	a.handleStart()
 	for {
 		select {
-		case <-a.HealthChan:
+		case <-rx.healthChan: // TODO
 			// nothing to do
-		case <-a.StopChan:
-			a.HandleStop()
+		case <-rx.stopChan:
+			a.handleStop()
 			return
-		case t := <-a.flushRx.Chan():
+		case t := <-rx.flush.Chan():
 			a.handleFlush(t)
-		case m := <-a.incrRx.C:
+		case m := <-rx.incr.C:
 			a.handleIncr(m)
 		}
 	}
-}
-
-func (a *aggregator) cleanup() {
-
-	a.Runtime.ActorStopped(&a.ActorBase)
 }

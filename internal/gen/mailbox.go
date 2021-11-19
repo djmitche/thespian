@@ -2,11 +2,13 @@ package gen
 
 type MailboxGenerator interface {
 	GenerateGo(*formatter)
-	ActorPublicStructDecl() string
-	ActorPublicStructMethod() string
+	ActorBuilderStructDecl() string
+	ActorRxStructDecl() string
+	ActorRxInitializer() string
+	ActorTxStructDecl() string
+	ActorTxInitializer() string
+	ActorTxStructMethod() string
 	ActorSpawnSetupClause() string
-	ActorSpawnRxAssignmentClause() string
-	ActorSpawnHandleInitializer() string
 	ActorLoopCase() string
 	ActorCleanupClause() string
 }

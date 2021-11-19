@@ -22,6 +22,19 @@ type Runtime struct {
 	stopped *sync.Cond
 }
 
+// Registration is returned from Register
+type Registration struct {
+	// ID is the identifier of the newly registered actor
+	ID uint64
+
+	// StopChan is a channel to stop the actor
+	StopChan chan struct{}
+
+	// HealthChan is the receive side of a channel for monitoring
+	// actor health
+	HealthChan <-chan struct{}
+}
+
 func NewRuntime() *Runtime {
 	rt := &Runtime{
 		nextID: 1,
@@ -31,42 +44,37 @@ func NewRuntime() *Runtime {
 	return rt
 }
 
-func (rt *Runtime) Register(base *ActorBase) {
-	if base.ID != 0 {
-		panic("ActorBase has already been registered")
-	}
-
+func (rt *Runtime) Register() Registration {
 	stopChan := make(chan struct{}, 1)
 	healthChan := make(chan struct{}, 2)
 
 	rta := &runtimeActor{stopChan, healthChan}
 
+	var ID uint64
 	func() {
 		rt.Lock()
 		defer rt.Unlock()
 
-		base.ID = rt.nextID
+		ID = rt.nextID
 		rt.nextID++
 
-		rt.actors[base.ID] = rta
+		rt.actors[ID] = rta
 	}()
 
-	base.Runtime = rt
-	base.StopChan = stopChan
-	base.HealthChan = healthChan
+	return Registration{ID, stopChan, healthChan}
 }
 
 // Inform the runtime that this actor has stopped.
-func (rt *Runtime) ActorStopped(base *ActorBase) {
+func (rt *Runtime) ActorStopped(id uint64) {
 	rt.Lock()
 	defer rt.Unlock()
 
-	_, found := rt.actors[base.ID]
+	_, found := rt.actors[id]
 	if !found {
-		panic(fmt.Sprintf("Actor %d stopped more than once", base.ID))
+		panic(fmt.Sprintf("Actor %d stopped more than once", id))
 	}
-	log.Printf("Actor %d stopped", base.ID)
-	delete(rt.actors, base.ID)
+	log.Printf("Actor %d stopped", id)
+	delete(rt.actors, id)
 
 	// if that was the last actor, signal any waiter
 	if len(rt.actors) == 0 {

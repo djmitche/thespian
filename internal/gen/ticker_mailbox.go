@@ -25,9 +25,11 @@ type {{public .MboxTypeBase}}Mailbox struct {
 	C chan {{.MessageType}}
 }
 
-func New{{public .MboxTypeBase}}Mailbox() {{public .MboxTypeBase}}Mailbox {
-	return {{public .MboxTypeBase}}Mailbox{
-		C: make(chan {{.MessageType}}, 10), // TODO: channel size??
+// ApplyDefaults applies default settings to this {{public .MboxTypeBase}}, if
+// the struct has its zero value.
+func (mbox *{{public .MboxTypeBase}}Mailbox) ApplyDefaults() {
+	if mbox.C == nil {
+		mbox.C = make(chan {{.MessageType}}, 10) // default channel size
 	}
 }
 
@@ -56,52 +58,65 @@ type {{.MboxTypeBase}}Rx struct {
 }`), g)
 }
 
-func (g *SimpleMailboxGenerator) ActorPublicStructDecl() string {
+func (g *SimpleMailboxGenerator) ActorBuilderStructDecl() string {
 	return renderTemplate(
-		"simple_actor_public_struct_decl",
-		`{{.FieldName}}Tx {{.MboxTypeQual}}{{.MboxTypeBase}}Tx`,
+		"simple_actor_builder_struct_decl",
+		`{{.FieldName}} {{.MboxTypeQual}}{{.MboxTypeBase}}Mailbox`,
 		g)
 }
 
-func (g *SimpleMailboxGenerator) ActorPublicStructMethod() string {
+func (g *SimpleMailboxGenerator) ActorRxStructDecl() string {
 	return renderTemplate(
-		"simple_actor_public_struct_method", strings.TrimSpace(`
+		"simple_actor_rx_struct_decl",
+		`{{.FieldName}} {{.MboxTypeQual}}{{.MboxTypeBase}}Rx`,
+		g)
+}
+
+func (g *SimpleMailboxGenerator) ActorRxInitializer() string {
+	return renderTemplate(
+		"simple_actor_rx_initializer",
+		`{{.FieldName}}: bldr.{{.FieldName}}.Rx(),`,
+		g)
+}
+
+func (g *SimpleMailboxGenerator) ActorTxStructDecl() string {
+	return renderTemplate(
+		"simple_actor_tx_struct_decl",
+		`{{.FieldName}} {{.MboxTypeQual}}{{.MboxTypeBase}}Tx`,
+		g)
+}
+
+func (g *SimpleMailboxGenerator) ActorTxInitializer() string {
+	return renderTemplate(
+		"simple_actor_tx_initializer",
+		`{{.FieldName}}: bldr.{{.FieldName}}.Tx(),`,
+		g)
+}
+
+func (g *SimpleMailboxGenerator) ActorTxStructMethod() string {
+	return renderTemplate(
+		"simple_actor_tx_struct_method", strings.TrimSpace(`
 		// {{public .FieldName}} sends to the actor's {{.FieldName}} mailbox.
-		func (a *{{public .ActorName}}) {{public .FieldName}}(m {{.MessageType}}) {
-			a.{{private .FieldName}}Tx.C <- m
+		func (tx *{{public .ActorName}}Tx) {{public .FieldName}}(m {{.MessageType}}) {
+			tx.{{private .FieldName}}.C <- m
 		}`), g)
 }
 
 func (g *SimpleMailboxGenerator) ActorSpawnSetupClause() string {
 	return renderTemplate(
-		"simple_actor_spawn_setup_clause",
-		`{{.FieldName}}Mailbox := {{.MboxTypeQual}}New{{.MboxTypeBase}}Mailbox()`,
-		g)
-}
-
-func (g *SimpleMailboxGenerator) ActorSpawnRxAssignmentClause() string {
-	return renderTemplate(
-		"simple_actor_spawn_rx_assignment_clause",
-		`a.{{.FieldName}}Rx = {{.FieldName}}Mailbox.Rx()`,
-		g)
-}
-
-func (g *SimpleMailboxGenerator) ActorSpawnHandleInitializer() string {
-	return renderTemplate(
-		"simple_actor_spawn_handle_initializer",
-		`{{.FieldName}}Tx: {{.FieldName}}Mailbox.Tx(),`,
-		g)
+		"simple_actor_spawn_setup_clause", strings.TrimSpace(`
+		bldr.{{.FieldName}}.ApplyDefaults()
+		`), g)
 }
 
 func (g *SimpleMailboxGenerator) ActorLoopCase() string {
 	return renderTemplate(
-		"simple_actor_spawn_loop_case", strings.TrimSpace(`
-			case m := <-a.{{.FieldName}}Rx.C:
+		"simple_actor_loop_case", strings.TrimSpace(`
+			case m := <-rx.{{.FieldName}}.C:
 				a.handle{{public .FieldName}}(m)
 		`), g)
 }
 
 func (g *SimpleMailboxGenerator) ActorCleanupClause() string {
-	// TODO
 	return ""
 }
