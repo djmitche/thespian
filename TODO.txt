@@ -31,11 +31,7 @@ Want:
 * a way to test this with unit tests and not a program
 
 Misc:
-* copy the private struct in `spawn` so that callers *cannot* maintain a
-  reference to it
 * move some types to internal/
-* remove use of cobra (not buying anything anymore)
-* cleanup tickers
 * clean up how mailbox types are specified; maybe parse `<path>.FooMailbox`?
 
 Later:
