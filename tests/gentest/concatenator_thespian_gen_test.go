@@ -20,13 +20,16 @@ func (bldr ConcatenatorBuilder) spawn(rt *thespian.Runtime) *ConcatenatorTx {
 
 	rx := &ConcatenatorRx{
 		id:         reg.ID,
+		rt:         rt,
 		stopChan:   reg.StopChan,
+		superChan:  reg.SuperChan,
 		healthChan: reg.HealthChan,
 		input:      bldr.input.Rx(),
 		output:     bldr.output.Rx(),
 	}
 
 	tx := &ConcatenatorTx{
+		ID:       reg.ID,
 		stopChan: reg.StopChan,
 		input:    bldr.input.Tx(),
 		output:   bldr.output.Tx(),
@@ -45,15 +48,32 @@ func (bldr ConcatenatorBuilder) spawn(rt *thespian.Runtime) *ConcatenatorTx {
 // ConcatenatorRx contains the Rx sides of the mailboxes, for access from the
 // Concatenator implementation.
 type ConcatenatorRx struct {
-	id         uint64
+	id uint64
+	rt *thespian.Runtime
+
 	stopChan   <-chan struct{}
+	superChan  <-chan thespian.SuperEvent
 	healthChan <-chan struct{}
 	input      StringRx
 	output     StringChanRx
 }
 
+// supervise starts supervision of the actor identified by otherID.
+// It is a shortcut to thespian.Runtime.Supervize.
+func (rx *ConcatenatorRx) supervise(otherID uint64) {
+	rx.rt.Supervise(rx.id, otherID)
+}
+
+// unsupervise stops supervision of the actor identified by otherID.
+// It is a shortcut to thespian.Runtime.Unupervize.
+func (rx *ConcatenatorRx) unsupervise(otherID uint64) {
+	rx.rt.Unsupervise(rx.id, otherID)
+}
+
 // ConcatenatorTx is the public handle for Concatenator actors.
 type ConcatenatorTx struct {
+	// ID is the unique ID of this actor
+	ID       uint64
 	stopChan chan<- struct{}
 	input    StringTx
 	output   StringChanTx
@@ -87,8 +107,10 @@ func (a *concatenator) loop() {
 	a.handleStart()
 	for {
 		select {
-		case <-rx.healthChan: // TODO
+		case <-rx.healthChan:
 			// nothing to do
+		case ev := <-rx.superChan:
+			a.handleSuperEvent(ev)
 		case <-rx.stopChan:
 			a.handleStop()
 			return

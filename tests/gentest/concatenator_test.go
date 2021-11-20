@@ -26,6 +26,9 @@ func (a *concatenator) handleStart() {
 func (a *concatenator) handleStop() {
 }
 
+func (a *concatenator) handleSuperEvent(ev thespian.SuperEvent) {
+}
+
 func (a *concatenator) handleInput(v string) {
 	log.Printf("input: %s", v)
 	a.accumulator = append(a.accumulator, v)

@@ -95,7 +95,9 @@ func (bldr {{$builder}}) spawn(rt *thespian.Runtime) *{{$tx}} {
 
 	rx := &{{$rx}}{
 		id: reg.ID,
+		rt: rt,
 		stopChan: reg.StopChan,
+		superChan: reg.SuperChan,
 		healthChan: reg.HealthChan,
 		{{- range .Mailboxes }}
 		{{ .ActorRxInitializer }}
@@ -103,6 +105,7 @@ func (bldr {{$builder}}) spawn(rt *thespian.Runtime) *{{$tx}} {
 	}
 
 	tx := &{{$tx}}{
+		ID: reg.ID,
 		stopChan: reg.StopChan,
 		{{- range .Mailboxes }}
 		{{ .ActorTxInitializer }}
@@ -123,7 +126,10 @@ func (bldr {{$builder}}) spawn(rt *thespian.Runtime) *{{$tx}} {
 // {{.ActorTypeBase}} implementation.
 type {{$rx}} struct {
 	id uint64
+	rt *thespian.Runtime
+
 	stopChan <-chan struct{}
+	superChan <-chan thespian.SuperEvent
 	healthChan <-chan struct{}
 
 	{{- range .Mailboxes }}
@@ -131,8 +137,22 @@ type {{$rx}} struct {
 	{{- end }}
 }
 
+// supervise starts supervision of the actor identified by otherID.
+// It is a shortcut to thespian.Runtime.Supervize.
+func (rx *{{$rx}}) supervise(otherID uint64) {
+	rx.rt.Supervise(rx.id, otherID)
+}
+
+// unsupervise stops supervision of the actor identified by otherID.
+// It is a shortcut to thespian.Runtime.Unupervize.
+func (rx *{{$rx}}) unsupervise(otherID uint64) {
+	rx.rt.Unsupervise(rx.id, otherID)
+}
+
 // {{$tx}} is the public handle for {{.ActorTypeBase}} actors.
 type {{$tx}} struct {
+	// ID is the unique ID of this actor
+	ID uint64
 	stopChan chan<- struct{}
 	{{- range .Mailboxes }}
 	{{ .ActorTxStructDecl }}
@@ -163,8 +183,10 @@ func (a *{{$private}}) loop() {
 	a.handleStart()
 	for {
 		select {
-		case <-rx.healthChan: // TODO
+		case <-rx.healthChan:
 			// nothing to do
+		case ev := <-rx.superChan:
+			a.handleSuperEvent(ev)
 		case <-rx.stopChan:
 			a.handleStop()
 			return

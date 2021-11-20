@@ -2,9 +2,22 @@ package thespian
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
+)
+
+type SuperEventType string
+
+const (
+
+	// UnhealthyActor is sent when the actor with the given ID becomes unhealthy
+	UnhealthyActor SuperEventType = "unhealthy"
+
+	// UnhealthyActor is sent when the actor with the given ID becomes healthy
+	HealthyActor SuperEventType = "healthy"
+
+	// StoppedActor is sent when the actor with the given ID stops
+	StoppedActor SuperEventType = "stopped"
 )
 
 // A Thespian runtime manages a collection of actors.
@@ -30,11 +43,30 @@ type Registration struct {
 	// StopChan is a channel to stop the actor
 	StopChan chan struct{}
 
+	// SuperChan is a channel for supervisory messages
+	SuperChan chan SuperEvent
+
 	// HealthChan is the receive side of a channel for monitoring
 	// actor health
 	HealthChan <-chan struct{}
 }
 
+// SuperEvent represents a supervisory event.
+type SuperEvent struct {
+	Event SuperEventType
+	ID    uint64
+}
+
+type runtimeActor struct {
+	id         uint64
+	stopChan   chan<- struct{}
+	healthChan chan<- struct{}
+	healthy    bool
+	superChan  chan<- SuperEvent
+	superSubs  map[uint64]struct{}
+}
+
+// NewRuntime creates a new runtime.
 func NewRuntime() *Runtime {
 	rt := &Runtime{
 		nextID: 1,
@@ -46,34 +78,50 @@ func NewRuntime() *Runtime {
 
 func (rt *Runtime) Register() Registration {
 	stopChan := make(chan struct{}, 1)
+	superChan := make(chan SuperEvent, 10)
 	healthChan := make(chan struct{}, 2)
 
-	rta := &runtimeActor{stopChan, healthChan}
+	rta := &runtimeActor{
+		stopChan:   stopChan,
+		healthChan: healthChan,
+		healthy:    true,
+		superChan:  superChan,
+		superSubs:  map[uint64]struct{}{},
+	}
 
-	var ID uint64
+	var id uint64
 	func() {
 		rt.Lock()
 		defer rt.Unlock()
 
-		ID = rt.nextID
+		id = rt.nextID
 		rt.nextID++
 
-		rt.actors[ID] = rta
+		rt.actors[id] = rta
+		rta.id = id
 	}()
 
-	return Registration{ID, stopChan, healthChan}
+	return Registration{
+		ID:         id,
+		StopChan:   stopChan,
+		SuperChan:  superChan,
+		HealthChan: healthChan,
+	}
 }
 
-// Inform the runtime that this actor has stopped.
+// Inform the runtime that this actor has stopped.  This is called
+// automatically when an actor finishes.
 func (rt *Runtime) ActorStopped(id uint64) {
 	rt.Lock()
 	defer rt.Unlock()
 
-	_, found := rt.actors[id]
+	actor, found := rt.actors[id]
 	if !found {
 		panic(fmt.Sprintf("Actor %d stopped more than once", id))
 	}
-	log.Printf("Actor %d stopped", id)
+
+	rt.sendSuperEventLocked(actor, StoppedActor)
+
 	delete(rt.actors, id)
 
 	// if that was the last actor, signal any waiter
@@ -113,6 +161,38 @@ func (rt *Runtime) Stop(wait bool) {
 	}
 }
 
+// Supervise subscribes the first actor to supervisory events about the
+// second.  The simpler shortcut to subscribe the current actor to another is
+// `actor.rx.supervise(otherID)`.
+func (rt *Runtime) Supervise(superID, otherID uint64) {
+	rt.Lock()
+	defer rt.Unlock()
+
+	_, found := rt.actors[superID]
+	if !found {
+		return
+	}
+	other, found := rt.actors[otherID]
+	if !found {
+		return
+	}
+	other.superSubs[superID] = struct{}{}
+}
+
+// Unsupervise unnsubscribes the first actor from supervisory events about the
+// second.  The simpler shortcut to unsubscribe the current actor to another
+// is `actor.rx.unsupervise(otherID)`.
+func (rt *Runtime) Unsupervise(superID, otherID uint64) {
+	rt.Lock()
+	defer rt.Unlock()
+
+	other, found := rt.actors[otherID]
+	if !found {
+		return
+	}
+	delete(other.superSubs, superID)
+}
+
 // wait blocks until there are no running actors
 func (rt *Runtime) wait() {
 	rt.Lock()
@@ -134,30 +214,40 @@ func (rt *Runtime) loop() {
 }
 
 func (rt *Runtime) pingActors() {
-	log.Printf("pinging")
-	unhealthy := []uint64{}
-	func() {
-		rt.Lock()
-		defer rt.Unlock()
+	rt.Lock()
+	defer rt.Unlock()
 
-		for id, actor := range rt.actors {
-			select {
-			case actor.healthChan <- struct{}{}:
-				continue
-			default:
-				// health chan is not being read from, so the actor is
-				// likely unhealthy
-				unhealthy = append(unhealthy, id)
+	for _, actor := range rt.actors {
+		select {
+		case actor.healthChan <- struct{}{}:
+			// the actor is healthy
+			if !actor.healthy {
+				rt.sendSuperEventLocked(actor, HealthyActor)
+				actor.healthy = true
+			}
+		default:
+			// health chan is not being read from, so the actor is
+			// likely unhealthy
+			if actor.healthy {
+				rt.sendSuperEventLocked(actor, UnhealthyActor)
+				actor.healthy = false
 			}
 		}
-	}()
-
-	for id := range unhealthy {
-		log.Printf("Actor %d is unhealthy\n", id) // TODO: react somehow
 	}
 }
 
-type runtimeActor struct {
-	stopChan   chan<- struct{}
-	healthChan chan<- struct{}
+// Send a SuperEvent about the givne agent, with the runtime already locked.
+func (rt *Runtime) sendSuperEventLocked(actor *runtimeActor, evt SuperEventType) {
+	for subId := range actor.superSubs {
+		sub, found := rt.actors[subId]
+		if found {
+			// TODO: nonblocking send with warning?
+			sub.superChan <- SuperEvent{
+				Event: evt,
+				ID:    actor.id,
+			}
+		} else {
+			delete(rt.actors, subId)
+		}
+	}
 }

@@ -1,22 +1,4 @@
 actors:
-  Aggregator:
-    test: true
-    mailboxes:
-      incr:
-        kind: simple
-        message-type: string
-        type: String
-      flush:
-        kind: ticker
-        import: github.com/djmitche/thespian/mailbox
-        type: Ticker
-  Reporter:
-    test: true
-    mailboxes:
-      report:
-        kind: simple
-        message-type: "[]string"
-        type: StringSlice
   Concatenator:
     test: true
     mailboxes:
@@ -34,10 +16,6 @@ mailboxes:
     test: true
     kind: simple
     message-type: string
-  StringSlice:
-    test: true
-    kind: simple
-    message-type: "[]string"
   StringChan:
     test: true
     kind: simple
