@@ -9,10 +9,7 @@ import (
 )
 
 type supervisor struct {
-	rt *thespian.Runtime
-	tx *SupervisorTx
-	rx *SupervisorRx
-
+	supervisorBase
 	childID uint64
 	events  chan thespian.SuperEvent
 }
@@ -21,18 +18,12 @@ func (a *supervisor) handleStart() {
 	a.rx.supervise(a.childID)
 }
 
-func (a *supervisor) handleStop() {
-}
-
 func (a *supervisor) handleSuperEvent(ev thespian.SuperEvent) {
 	a.events <- ev
 }
 
 type supervisee struct {
-	rt *thespian.Runtime
-	tx *SuperviseeTx
-	rx *SuperviseeRx
-
+	superviseeBase
 	beUnhealthy bool
 }
 
@@ -40,12 +31,6 @@ func (a *supervisee) handleStart() {
 	if a.beUnhealthy {
 		time.Sleep(5 * time.Second)
 	}
-}
-
-func (a *supervisee) handleStop() {
-}
-
-func (a *supervisee) handleSuperEvent(ev thespian.SuperEvent) {
 }
 
 func TestStoppedEvent(t *testing.T) {

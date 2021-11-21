@@ -6,7 +6,28 @@ import (
 	"github.com/djmitche/thespian"
 )
 
-// ConcatenatorBuilder is used to buidl new Concatenator actors.
+// concatenatorBase is embedded in the private actor struct and contains
+// common fields as well as default method implementations
+type concatenatorBase struct {
+	rt *thespian.Runtime
+	tx *ConcatenatorTx
+	rx *ConcatenatorRx
+}
+
+// handleStart is called when the actor starts.  The default implementation
+// does nothing, but users may implement this method to perform startup.
+func (a *concatenatorBase) handleStart() {}
+
+// handleStop is called when the actor stops cleanly.  The default
+// implementation does nothing, but users may implement this method to perform
+// cleanup.
+func (a *concatenatorBase) handleStop() {}
+
+// handleSuperEvent is called for supervisory events.  Actors which do not
+// supervise need not implement this method.
+func (a *concatenatorBase) handleSuperEvent(ev thespian.SuperEvent) {}
+
+// ConcatenatorBuilder is used to build new Concatenator actors.
 type ConcatenatorBuilder struct {
 	concatenator
 	input  StringMailbox

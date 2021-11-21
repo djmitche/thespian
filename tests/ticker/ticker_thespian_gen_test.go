@@ -7,15 +7,36 @@ import (
 	import1 "github.com/djmitche/thespian/mailbox"
 )
 
-// TimerBuilder is used to buidl new Timer actors.
-type TimerBuilder struct {
-	timer
+// tickerBase is embedded in the private actor struct and contains
+// common fields as well as default method implementations
+type tickerBase struct {
+	rt *thespian.Runtime
+	tx *TickerTx
+	rx *TickerRx
 }
 
-func (bldr TimerBuilder) spawn(rt *thespian.Runtime) *TimerTx {
+// handleStart is called when the actor starts.  The default implementation
+// does nothing, but users may implement this method to perform startup.
+func (a *tickerBase) handleStart() {}
+
+// handleStop is called when the actor stops cleanly.  The default
+// implementation does nothing, but users may implement this method to perform
+// cleanup.
+func (a *tickerBase) handleStop() {}
+
+// handleSuperEvent is called for supervisory events.  Actors which do not
+// supervise need not implement this method.
+func (a *tickerBase) handleSuperEvent(ev thespian.SuperEvent) {}
+
+// TickerBuilder is used to build new Ticker actors.
+type TickerBuilder struct {
+	ticker
+}
+
+func (bldr TickerBuilder) spawn(rt *thespian.Runtime) *TickerTx {
 	reg := rt.Register()
 
-	rx := &TimerRx{
+	rx := &TickerRx{
 		id:         reg.ID,
 		rt:         rt,
 		stopChan:   reg.StopChan,
@@ -24,13 +45,13 @@ func (bldr TimerBuilder) spawn(rt *thespian.Runtime) *TimerTx {
 		tkr:        import1.NewTickerRx(rt),
 	}
 
-	tx := &TimerTx{
+	tx := &TickerTx{
 		ID:       reg.ID,
 		stopChan: reg.StopChan,
 	}
 
-	// copy to a new timer instance
-	pvt := bldr.timer
+	// copy to a new ticker instance
+	pvt := bldr.ticker
 	pvt.rt = rt
 	pvt.rx = rx
 	pvt.tx = tx
@@ -39,9 +60,9 @@ func (bldr TimerBuilder) spawn(rt *thespian.Runtime) *TimerTx {
 	return tx
 }
 
-// TimerRx contains the Rx sides of the mailboxes, for access from the
-// Timer implementation.
-type TimerRx struct {
+// TickerRx contains the Rx sides of the mailboxes, for access from the
+// Ticker implementation.
+type TickerRx struct {
 	id uint64
 	rt *thespian.Runtime
 
@@ -53,18 +74,18 @@ type TimerRx struct {
 
 // supervise starts supervision of the actor identified by otherID.
 // It is a shortcut to thespian.Runtime.Supervize.
-func (rx *TimerRx) supervise(otherID uint64) {
+func (rx *TickerRx) supervise(otherID uint64) {
 	rx.rt.Supervise(rx.id, otherID)
 }
 
 // unsupervise stops supervision of the actor identified by otherID.
 // It is a shortcut to thespian.Runtime.Unupervize.
-func (rx *TimerRx) unsupervise(otherID uint64) {
+func (rx *TickerRx) unsupervise(otherID uint64) {
 	rx.rt.Unsupervise(rx.id, otherID)
 }
 
-// TimerTx is the public handle for Timer actors.
-type TimerTx struct {
+// TickerTx is the public handle for Ticker actors.
+type TickerTx struct {
 	// ID is the unique ID of this actor
 	ID       uint64
 	stopChan chan<- struct{}
@@ -72,14 +93,14 @@ type TimerTx struct {
 
 // Stop sends a message to stop the actor.  This does not wait until
 // the actor has stopped.
-func (a *TimerTx) Stop() {
+func (a *TickerTx) Stop() {
 	select {
 	case a.stopChan <- struct{}{}:
 	default:
 	}
 }
 
-func (a *timer) loop() {
+func (a *ticker) loop() {
 	rx := a.rx
 	defer func() {
 		rx.tkr.Stop()

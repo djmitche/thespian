@@ -63,6 +63,7 @@ func NewActorGenerator(pkg, name string, yml ActorYml) *ActorGenerator {
 func (g *ActorGenerator) GenerateGo(out *formatter) {
 	out.executeTemplate(getTemplate(
 		"actor_gen", `
+{{- $base := printf "%sBase" .ActorTypeBase | private }}
 {{- $builder := printf "%sBuilder" .ActorTypeBase | public }}
 {{- $tx := printf "%sTx" .ActorTypeBase | public }}
 {{- $rx := printf "%sRx" .ActorTypeBase | public }}
@@ -77,7 +78,28 @@ import (
 	{{- end }}
 )
 
-// {{$builder}} is used to buidl new {{.ActorTypeBase}} actors.
+// {{$base}} is embedded in the private actor struct and contains
+// common fields as well as default method implementations
+type {{$base}} struct {
+	rt *thespian.Runtime
+	tx *{{$tx}}
+	rx *{{$rx}}
+}
+
+// handleStart is called when the actor starts.  The default implementation
+// does nothing, but users may implement this method to perform startup.
+func (a *{{$base}}) handleStart() {}
+
+// handleStop is called when the actor stops cleanly.  The default
+// implementation does nothing, but users may implement this method to perform
+// cleanup.
+func (a *{{$base}}) handleStop() {}
+
+// handleSuperEvent is called for supervisory events.  Actors which do not
+// supervise need not implement this method.
+func (a *{{$base}}) handleSuperEvent(ev thespian.SuperEvent) {}
+
+// {{$builder}} is used to build new {{.ActorTypeBase}} actors.
 type {{$builder}} struct {
 	{{$private}}
 

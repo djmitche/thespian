@@ -6,7 +6,28 @@ import (
 	"github.com/djmitche/thespian"
 )
 
-// SuperviseeBuilder is used to buidl new Supervisee actors.
+// superviseeBase is embedded in the private actor struct and contains
+// common fields as well as default method implementations
+type superviseeBase struct {
+	rt *thespian.Runtime
+	tx *SuperviseeTx
+	rx *SuperviseeRx
+}
+
+// handleStart is called when the actor starts.  The default implementation
+// does nothing, but users may implement this method to perform startup.
+func (a *superviseeBase) handleStart() {}
+
+// handleStop is called when the actor stops cleanly.  The default
+// implementation does nothing, but users may implement this method to perform
+// cleanup.
+func (a *superviseeBase) handleStop() {}
+
+// handleSuperEvent is called for supervisory events.  Actors which do not
+// supervise need not implement this method.
+func (a *superviseeBase) handleSuperEvent(ev thespian.SuperEvent) {}
+
+// SuperviseeBuilder is used to build new Supervisee actors.
 type SuperviseeBuilder struct {
 	supervisee
 }

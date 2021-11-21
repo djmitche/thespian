@@ -10,26 +10,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type timer struct {
-	rt *thespian.Runtime
-	tx *TimerTx
-	rx *TimerRx
-
+type ticker struct {
+	tickerBase
 	events chan string
 	ticks  int
 }
 
-func (a *timer) handleStart() {
+func (a *ticker) handleStart() {
 	a.rx.tkr.Reset(10 * time.Second)
 }
 
-func (a *timer) handleStop() {
-}
-
-func (a *timer) handleSuperEvent(ev thespian.SuperEvent) {
-}
-
-func (a *timer) handleTkr(t time.Time) {
+func (a *ticker) handleTkr(t time.Time) {
 	a.ticks++
 	a.events <- fmt.Sprintf("tick @ %s", t)
 	if a.ticks == 1 {
@@ -39,13 +30,13 @@ func (a *timer) handleTkr(t time.Time) {
 	}
 }
 
-func TestTimer(t *testing.T) {
+func TestTicker(t *testing.T) {
 	clock := clock.NewMock()
 	rt := thespian.NewRuntime()
 	rt.Clock = clock
 
 	ch := make(chan string, 10)
-	tkr := TimerBuilder{timer{events: ch}}.spawn(rt)
+	tkr := TickerBuilder{ticker{events: ch}}.spawn(rt)
 
 	// run the clock for 100s and stop the actor
 	go func() {

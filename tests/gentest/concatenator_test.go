@@ -9,24 +9,12 @@ import (
 
 // concatenator reports aggregated stuff
 type concatenator struct {
-	rt *thespian.Runtime
-	tx *ConcatenatorTx
-	rx *ConcatenatorRx
-
+	concatenatorBase
 	accumulator []string
 }
 
 func NewConcatenator(rt *thespian.Runtime) *ConcatenatorTx {
 	return ConcatenatorBuilder{}.spawn(rt)
-}
-
-func (a *concatenator) handleStart() {
-}
-
-func (a *concatenator) handleStop() {
-}
-
-func (a *concatenator) handleSuperEvent(ev thespian.SuperEvent) {
 }
 
 func (a *concatenator) handleInput(v string) {

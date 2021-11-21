@@ -49,10 +49,9 @@ enabling/disabling polling of channels.
   * Get a context that will end on actor stop?
 
 Misc:
-* <root>Base agent struct with rt, tx, rx, default handleStart/Stop/SuperEvent
+* fix race conditions the way erlang does
 
 Later:
-* fix race conditions the way erlang does
 * allow build flags for generation
 * clean up how mailbox types are specified; maybe parse `<path>.FooMailbox`?
   * determine kind automatically where possible, otherwise require for actor
