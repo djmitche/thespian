@@ -22,7 +22,11 @@ package {{.ThisPackage}}
 
 // {{public .MboxTypeBase}}Mailbox is a mailbox for messages of type {{.MessageType}}.
 type {{public .MboxTypeBase}}Mailbox struct {
+	// C is the bidirectional channel over which messages will be transferred.  If
+	// this is not set in the mailbox, a fresh channel will be created automatically.
 	C chan {{.MessageType}}
+	// Disabled, if set to true, causes the mailbox to start life disabled.
+	Disabled bool
 }
 
 // ApplyDefaults applies default settings to this {{public .MboxTypeBase}}, if
@@ -44,6 +48,7 @@ func (mbox *{{public .MboxTypeBase}}Mailbox) Tx() {{.MboxTypeBase}}Tx {
 func (mbox *{{public .MboxTypeBase}}Mailbox) Rx() {{.MboxTypeBase}}Rx {
 	return {{.MboxTypeBase}}Rx{
 		C: mbox.C,
+		Disabled: mbox.Disabled,
 	}
 }
 
@@ -55,6 +60,16 @@ type {{.MboxTypeBase}}Tx struct {
 // {{.MboxTypeBase}}Rx receives from a mailbox for messages of type {{.MessageType}}.
 type {{.MboxTypeBase}}Rx struct {
 	C <-chan {{.MessageType}}
+	// Disabled, if set to true, will disable receipt of messages from this mailbox.
+	Disabled bool
+}
+
+// Chan gets a channel for this mailbox, or nil if there is nothing to select from.
+func (rx *{{.MboxTypeBase}}Rx) Chan() <-chan {{.MessageType}} {
+	if rx.Disabled {
+		return nil
+	}
+	return rx.C
 }`), g)
 }
 
@@ -112,7 +127,7 @@ func (g *SimpleMailboxGenerator) ActorSpawnSetupClause() string {
 func (g *SimpleMailboxGenerator) ActorLoopCase() string {
 	return renderTemplate(
 		"simple_actor_loop_case", strings.TrimSpace(`
-			case m := <-rx.{{.FieldName}}.C:
+			case m := <-rx.{{.FieldName}}.Chan():
 				a.handle{{public .FieldName}}(m)
 		`), g)
 }

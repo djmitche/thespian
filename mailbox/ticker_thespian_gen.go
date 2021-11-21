@@ -8,14 +8,6 @@ import (
 	"time"
 )
 
-// tickerNeverChan is a channel on which nothing is ever sent.  It is used as a substitute
-// for a ticker channel when no ticker is running
-var tickerNeverChan chan time.Time
-
-func init() {
-	tickerNeverChan = make(chan time.Time)
-}
-
 // TickerRx contains a ticker that the actor implementation can control
 type TickerRx struct {
 	// ticker is the ticker this mailbox responds to, or nil if it is disabled
@@ -30,13 +22,12 @@ func NewTickerRx(rt *thespian.Runtime) TickerRx {
 	}
 }
 
-// Chan gets a channel for this ticker.  This never returns nil, even if the
-// ticker is not enabled.
+// Chan gets a channel for this ticker, or nil if the ticker is not started.
 func (rx *TickerRx) Chan() <-chan time.Time {
-	if rx.ticker != nil {
-		return rx.ticker.C
+	if rx.ticker == nil {
+		return nil
 	}
-	return tickerNeverChan
+	return rx.ticker.C
 }
 
 // Reset stops a ticker and resets its period to the specified duration.

@@ -135,9 +135,9 @@ func (a *concatenator) loop() {
 		case <-rx.stopChan:
 			a.handleStop()
 			return
-		case m := <-rx.input.C:
+		case m := <-rx.input.Chan():
 			a.handleInput(m)
-		case m := <-rx.output.C:
+		case m := <-rx.output.Chan():
 			a.handleOutput(m)
 		}
 	}

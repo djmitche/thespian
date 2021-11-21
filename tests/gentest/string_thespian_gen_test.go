@@ -4,7 +4,11 @@ package gentest
 
 // StringMailbox is a mailbox for messages of type string.
 type StringMailbox struct {
+	// C is the bidirectional channel over which messages will be transferred.  If
+	// this is not set in the mailbox, a fresh channel will be created automatically.
 	C chan string
+	// Disabled, if set to true, causes the mailbox to start life disabled.
+	Disabled bool
 }
 
 // ApplyDefaults applies default settings to this String, if
@@ -25,7 +29,8 @@ func (mbox *StringMailbox) Tx() StringTx {
 // Rx creates a StringRx for this mailbox
 func (mbox *StringMailbox) Rx() StringRx {
 	return StringRx{
-		C: mbox.C,
+		C:        mbox.C,
+		Disabled: mbox.Disabled,
 	}
 }
 
@@ -37,4 +42,14 @@ type StringTx struct {
 // StringRx receives from a mailbox for messages of type string.
 type StringRx struct {
 	C <-chan string
+	// Disabled, if set to true, will disable receipt of messages from this mailbox.
+	Disabled bool
+}
+
+// Chan gets a channel for this mailbox, or nil if there is nothing to select from.
+func (rx *StringRx) Chan() <-chan string {
+	if rx.Disabled {
+		return nil
+	}
+	return rx.C
 }

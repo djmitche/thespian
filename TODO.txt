@@ -40,7 +40,6 @@ enabling/disabling polling of channels.
 
 * implement a fake dsd
 * try MPMC
-* simple mailbox enable/disable
 * more mailbox types
   * RPC (blocking, with sync channel)
   * Timer (heap of times with callbacks)
