@@ -8,12 +8,12 @@ import (
 	"time"
 )
 
-// never is a channel on which nothing is ever sent.  It is used as a substitute
+// tickerNeverChan is a channel on which nothing is ever sent.  It is used as a substitute
 // for a ticker channel when no ticker is running
-var never chan time.Time
+var tickerNeverChan chan time.Time
 
 func init() {
-	never = make(chan time.Time)
+	tickerNeverChan = make(chan time.Time)
 }
 
 // TickerRx contains a ticker that the actor implementation can control
@@ -36,7 +36,7 @@ func (rx *TickerRx) Chan() <-chan time.Time {
 	if rx.ticker != nil {
 		return rx.ticker.C
 	}
-	return never
+	return tickerNeverChan
 }
 
 // Reset stops a ticker and resets its period to the specified duration.
