@@ -1,4 +1,4 @@
-package gentest
+package super
 
 import (
 	"testing"

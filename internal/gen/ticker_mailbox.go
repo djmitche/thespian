@@ -19,36 +19,56 @@ func (g *TickerMailboxGenerator) GenerateGo(out *formatter) {
 
 package {{.ThisPackage}}
 
-import "time"
+import (
+	"time"
+	"github.com/benbjohnson/clock"
+	"github.com/djmitche/thespian"
+)
+
+// never is a channel on which nothing is ever sent.  It is used as a substitute
+// for a ticker channel when no ticker is running
+var never chan time.Time
+
+func init() {
+	never = make(chan time.Time)
+}
 
 // {{.MboxTypeBase}}Rx contains a ticker that the actor implementation can control
 type {{.MboxTypeBase}}Rx struct {
-	// Ticker is the ticker this mailbox responds to, or nil if it is disabled
-	Ticker *time.Ticker
-	// Never is a channel that never carries a message, used when Ticker is nil
-	never chan time.Time
+	// ticker is the ticker this mailbox responds to, or nil if it is disabled
+	ticker *clock.Ticker
+	clock clock.Clock
 }
 
-func New{{.MboxTypeBase}}Rx() {{.MboxTypeBase}}Rx {
+func New{{.MboxTypeBase}}Rx(rt *thespian.Runtime) {{.MboxTypeBase}}Rx {
 	return {{.MboxTypeBase}}Rx{
-		Ticker: nil,
-		// TODO: just use one of these, globally
-		never: make(chan time.Time),
+		ticker: nil,
+		clock: rt.Clock,
 	}
 }
 
-// Chan gets a channel for this ticker
+// Chan gets a channel for this ticker.  This never returns nil, even if the
+// ticker is not enabled.
 func (rx *{{.MboxTypeBase}}Rx) Chan() <-chan time.Time {
-	if rx.Ticker != nil {
-		return rx.Ticker.C
+	if rx.ticker != nil {
+		return rx.ticker.C
 	}
-	return rx.never
+	return never
 }
 
-// Close stops this ticker.  This is called automatically on agent stop.
-func (rx *{{.MboxTypeBase}}Rx) Close() {
-	if rx.Ticker != nil {
-		rx.Ticker.Stop()
+// Reset stops a ticker and resets its period to the specified duration.
+func (rx *{{.MboxTypeBase}}Rx) Reset(d time.Duration) {
+	if rx.ticker == nil {
+		rx.ticker = rx.clock.Ticker(d)
+	} else {
+		rx.ticker.Reset(d)
+	}
+}
+
+// Stop stops this ticker.  This is called automatically on agent stop.
+func (rx *{{.MboxTypeBase}}Rx) Stop() {
+	if rx.ticker != nil {
+		rx.ticker.Stop()
 	}
 }`), g)
 }
@@ -67,7 +87,7 @@ func (g *TickerMailboxGenerator) ActorRxStructDecl() string {
 func (g *TickerMailboxGenerator) ActorRxInitializer() string {
 	return renderTemplate(
 		"ticker_actor_rx_initializer",
-		`{{.FieldName}}: {{.MboxTypeQual}}New{{.MboxTypeBase}}Rx(),`,
+		`{{.FieldName}}: {{.MboxTypeQual}}New{{.MboxTypeBase}}Rx(rt),`,
 		g)
 }
 
@@ -98,6 +118,6 @@ func (g *TickerMailboxGenerator) ActorLoopCase() string {
 func (g *TickerMailboxGenerator) ActorCleanupClause() string {
 	return renderTemplate(
 		"ticker_actor_cleanup_clause", strings.TrimSpace(`
-			rx.{{.FieldName}}.Close()
+			rx.{{.FieldName}}.Stop()
 		`), g)
 }

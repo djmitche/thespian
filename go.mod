@@ -3,6 +3,7 @@ module github.com/djmitche/thespian
 go 1.15
 
 require (
+	github.com/benbjohnson/clock v1.3.0
 	github.com/iancoleman/strcase v0.2.0
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/stretchr/testify v1.7.0

@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/benbjohnson/clock"
 )
 
 type SuperEventType string
 
 const (
-
 	// UnhealthyActor is sent when the actor with the given ID becomes unhealthy
 	UnhealthyActor SuperEventType = "unhealthy"
 
@@ -33,6 +34,10 @@ type Runtime struct {
 
 	// stopped is signalled when the last actor stops
 	stopped *sync.Cond
+
+	// The clock used for timing for all actors in this runtime.  Substitute
+	// a mock here for testing
+	Clock clock.Clock
 }
 
 // Registration is returned from Register
@@ -71,6 +76,7 @@ func NewRuntime() *Runtime {
 	rt := &Runtime{
 		nextID: 1,
 		actors: make(map[uint64]*runtimeActor),
+		Clock:  clock.New(),
 	}
 	rt.stopped = sync.NewCond(&rt.Mutex)
 	return rt
@@ -204,7 +210,7 @@ func (rt *Runtime) wait() {
 }
 
 func (rt *Runtime) loop() {
-	checker := time.NewTicker(1 * time.Second)
+	checker := rt.Clock.Ticker(1 * time.Second)
 	for {
 		select {
 		case <-checker.C:

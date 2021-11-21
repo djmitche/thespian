@@ -49,8 +49,6 @@ enabling/disabling polling of channels.
   * Get a context that will end on actor stop?
 
 Misc:
-* use clock from rt
-* better handling of "never" channel
 * <root>Base agent struct with rt, tx, rx, default handleStart/Stop/SuperEvent
 
 Later:

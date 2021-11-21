@@ -1,0 +1,8 @@
+actors:
+  Timer:
+    test: true
+    mailboxes:
+      tkr:
+        kind: ticker
+        type: Ticker
+        import: github.com/djmitche/thespian/mailbox

@@ -2,35 +2,55 @@
 
 package mailbox
 
-import "time"
+import (
+	"github.com/benbjohnson/clock"
+	"github.com/djmitche/thespian"
+	"time"
+)
+
+// never is a channel on which nothing is ever sent.  It is used as a substitute
+// for a ticker channel when no ticker is running
+var never chan time.Time
+
+func init() {
+	never = make(chan time.Time)
+}
 
 // TickerRx contains a ticker that the actor implementation can control
 type TickerRx struct {
-	// Ticker is the ticker this mailbox responds to, or nil if it is disabled
-	Ticker *time.Ticker
-	// Never is a channel that never carries a message, used when Ticker is nil
-	never chan time.Time
+	// ticker is the ticker this mailbox responds to, or nil if it is disabled
+	ticker *clock.Ticker
+	clock  clock.Clock
 }
 
-func NewTickerRx() TickerRx {
+func NewTickerRx(rt *thespian.Runtime) TickerRx {
 	return TickerRx{
-		Ticker: nil,
-		// TODO: just use one of these, globally
-		never: make(chan time.Time),
+		ticker: nil,
+		clock:  rt.Clock,
 	}
 }
 
-// Chan gets a channel for this ticker
+// Chan gets a channel for this ticker.  This never returns nil, even if the
+// ticker is not enabled.
 func (rx *TickerRx) Chan() <-chan time.Time {
-	if rx.Ticker != nil {
-		return rx.Ticker.C
+	if rx.ticker != nil {
+		return rx.ticker.C
 	}
-	return rx.never
+	return never
 }
 
-// Close stops this ticker.  This is called automatically on agent stop.
-func (rx *TickerRx) Close() {
-	if rx.Ticker != nil {
-		rx.Ticker.Stop()
+// Reset stops a ticker and resets its period to the specified duration.
+func (rx *TickerRx) Reset(d time.Duration) {
+	if rx.ticker == nil {
+		rx.ticker = rx.clock.Ticker(d)
+	} else {
+		rx.ticker.Reset(d)
+	}
+}
+
+// Stop stops this ticker.  This is called automatically on agent stop.
+func (rx *TickerRx) Stop() {
+	if rx.ticker != nil {
+		rx.ticker.Stop()
 	}
 }
