@@ -38,7 +38,13 @@ enabling/disabling polling of channels.
 
 # TODO
 
-* implement a fake dsd
+* implement a fake logs-agent
+  * inputs (tailing, decoder, etc.) w/ supervisor
+  * parser
+  * tagger
+  * forwarders
+  * auditor
+* more flexible health monitoring options
 * try MPMC
 * more mailbox types
   * RPC (blocking, with sync channel)
