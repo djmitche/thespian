@@ -56,7 +56,9 @@ enabling/disabling polling of channels.
   * Get a context that will end on actor stop?
 
 Misc:
-* fix race conditions the way erlang does
+* fix startup/super race conditions the way erlang does
+* Rx type should be private
+* put ID in the Base type
 
 Later:
 * allow build flags for generation
