@@ -2,6 +2,8 @@
 
 package gentest
 
+import ()
+
 // StringChanMailbox is a mailbox for messages of type chan<- string.
 type StringChanMailbox struct {
 	// C is the bidirectional channel over which messages will be transferred.  If

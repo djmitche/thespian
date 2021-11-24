@@ -38,10 +38,6 @@ enabling/disabling polling of channels.
 
 # TODO
 
-* clean up how mailbox types are specified; maybe parse `<path>.FooMailbox`?
-  * allow message-type to have a package as well
-  * determine kind automatically where possible, otherwise require for actor
-    def
 * add some more predefined mailbox types (string, int, struct{}, etc.)
 * [WIP] implement a fake logs-agent
   * inputs (tailing, decoder, etc.) w/ supervisor

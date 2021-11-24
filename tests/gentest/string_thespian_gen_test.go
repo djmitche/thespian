@@ -2,6 +2,8 @@
 
 package gentest
 
+import ()
+
 // StringMailbox is a mailbox for messages of type string.
 type StringMailbox struct {
 	// C is the bidirectional channel over which messages will be transferred.  If

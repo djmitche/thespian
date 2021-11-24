@@ -4,5 +4,4 @@ actors:
     mailboxes:
       tkr:
         kind: ticker
-        type: Ticker
-        import: github.com/djmitche/thespian/mailbox
+        type: github.com/djmitche/thespian/mailbox.Ticker

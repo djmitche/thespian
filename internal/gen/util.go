@@ -14,6 +14,17 @@ import (
 
 const thespianPackage = "github.com/djmitche/thespian"
 
+// SplitPackage parses a package string of the form package.type into the
+// package and type.
+func SplitPackage(input string) (string, string) {
+	idx := strings.LastIndexByte(input, byte('.'))
+	if idx == -1 {
+		return "", input
+	} else {
+		return input[:idx], input[idx+1:]
+	}
+}
+
 func publicIdentifier(s string) string {
 	return strcase.ToCamel(s)
 }
