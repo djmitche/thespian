@@ -38,7 +38,12 @@ enabling/disabling polling of channels.
 
 # TODO
 
-* implement a fake logs-agent
+* clean up how mailbox types are specified; maybe parse `<path>.FooMailbox`?
+  * allow message-type to have a package as well
+  * determine kind automatically where possible, otherwise require for actor
+    def
+* add some more predefined mailbox types (string, int, struct{}, etc.)
+* [WIP] implement a fake logs-agent
   * inputs (tailing, decoder, etc.) w/ supervisor
   * parser
   * tagger
@@ -51,19 +56,20 @@ enabling/disabling polling of channels.
   * Timer (heap of times with callbacks)
   * Listener (rx Conn)
   * Connection (rx buffers)
+  * Empty (struct{})
+  * Buffer (Sender gets slices to write to, Receiver gets slices and can
+    release a prefix of the received slice; useful for splitting streams)
 * mix Context in here somehow
   * in the RPC mailbox
   * Get a context that will end on actor stop?
 
 Misc:
+* add a license
 * fix startup/super race conditions the way erlang does
 * Rx type should be private
 * put ID in the Base type
+* support Go Docs
 
 Later:
 * allow build flags for generation
-* clean up how mailbox types are specified; maybe parse `<path>.FooMailbox`?
-  * determine kind automatically where possible, otherwise require for actor
-    def
-* add some more predefined mailbox types (string, int, struct{}, etc.)
 * document thespian.yml
