@@ -40,7 +40,7 @@ func (imp *importTracker) addNamed(pkg, shortName string) {
 		}
 		return
 	}
-	if strings.HasSuffix(pkg, "/"+shortName) {
+	if shortName == pkg || strings.HasSuffix(pkg, "/"+shortName) {
 		imp.imports = append(imp.imports, fmt.Sprintf(`"%s"`, pkg))
 	} else {
 		imp.imports = append(imp.imports, fmt.Sprintf(`%s "%s"`, shortName, pkg))

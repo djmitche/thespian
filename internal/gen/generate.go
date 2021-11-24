@@ -19,16 +19,20 @@ type ActorYml struct {
 }
 
 type ActorMailboxYml struct {
-	Kind        string `yaml:"kind"`
-	MessageType string `yaml:"message-type"`
-	Import      string `yaml:"import"`
-	Type        string `yaml:"type"`
+	Kind         string `yaml:"kind"`
+	MessageType  string `yaml:"message-type"`
+	RequestType  string `yaml:"request-type"`
+	ResponseType string `yaml:"response-type"`
+	Import       string `yaml:"import"`
+	Type         string `yaml:"type"`
 }
 
 type MailboxYml struct {
-	Test        bool   `yaml:"test"`
-	Kind        string `yaml:"kind"`
-	MessageType string `yaml:"message-type"`
+	Test         bool   `yaml:"test"`
+	Kind         string `yaml:"kind"`
+	MessageType  string `yaml:"message-type"`
+	RequestType  string `yaml:"request-type"`
+	ResponseType string `yaml:"response-type"`
 }
 
 func Generate() {

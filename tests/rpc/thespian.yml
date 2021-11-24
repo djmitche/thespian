@@ -1,0 +1,20 @@
+actors:
+  Server:
+    test: true
+    mailboxes:
+      upper:
+        kind: rpc
+        type: StringRPC
+        request-type: string
+        response-type: string
+      lower:
+        kind: rpc
+        type: StringRPC
+        request-type: string
+        response-type: string
+
+mailboxes:
+  StringRPC:
+    kind: rpc
+    request-type: string
+    response-type: string

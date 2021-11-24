@@ -39,6 +39,31 @@ func NewMailboxGeneratorForActor(thisPackage, actorName, fieldName string, impor
 			ActorName:    actorName,
 			FieldName:    fieldName,
 		}
+
+	case "rpc":
+		reqPkg, reqType := SplitPackage(yml.RequestType)
+		if reqPkg != "" {
+			shortName := imports.add(reqPkg)
+			reqType = fmt.Sprintf("%s.%s", shortName, reqType)
+		}
+
+		resPkg, resType := SplitPackage(yml.ResponseType)
+		if resPkg != "" {
+			shortName := imports.add(resPkg)
+			resType = fmt.Sprintf("%s.%s", shortName, resType)
+		}
+
+		imports.addNamed("context", "context")
+
+		return &RPCMailboxGenerator{
+			ThisPackage:  thisPackage,
+			RequestType:  reqType,
+			ResponseType: resType,
+			MboxTypeBase: mboxType,
+			MboxTypeQual: mboxTypeQual,
+			ActorName:    actorName,
+			FieldName:    fieldName,
+		}
 	case "ticker":
 		return &TickerMailboxGenerator{
 			ThisPackage:  thisPackage,
@@ -54,10 +79,10 @@ func NewMailboxGeneratorForActor(thisPackage, actorName, fieldName string, impor
 }
 
 func NewMailboxGeneratorForMailbox(thisPackage, typeName string, yml MailboxYml) MailboxGenerator {
+	imports := newImportTracker()
+
 	switch yml.Kind {
 	case "simple":
-		imports := newImportTracker()
-
 		msgPkg, msgType := SplitPackage(yml.MessageType)
 		if msgPkg != "" {
 			shortName := imports.add(msgPkg)
@@ -67,6 +92,26 @@ func NewMailboxGeneratorForMailbox(thisPackage, typeName string, yml MailboxYml)
 		return &SimpleMailboxGenerator{
 			ThisPackage:  thisPackage,
 			MessageType:  msgType,
+			MboxTypeBase: typeName,
+			Imports:      imports.get(),
+		}
+	case "rpc":
+		reqPkg, reqType := SplitPackage(yml.RequestType)
+		if reqPkg != "" {
+			shortName := imports.add(reqPkg)
+			reqType = fmt.Sprintf("%s.%s", shortName, reqType)
+		}
+
+		resPkg, resType := SplitPackage(yml.ResponseType)
+		if resPkg != "" {
+			shortName := imports.add(resPkg)
+			resType = fmt.Sprintf("%s.%s", shortName, resType)
+		}
+
+		return &RPCMailboxGenerator{
+			ThisPackage:  thisPackage,
+			RequestType:  reqType,
+			ResponseType: resType,
 			MboxTypeBase: typeName,
 			Imports:      imports.get(),
 		}

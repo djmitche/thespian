@@ -217,12 +217,12 @@ actors:
       mailboxName:
         kind: simple
         message-type: "Order"
-        import: my.package/path/to/mailboxes
-        type: Order
+        type: my.package/path/to/mailboxes.Order
 ```
 
-Here, `message-type` must match the message type used in the mailbox specification, and `type` must match the base name of the mailbox type in the package identified by `import`.
-The `import` property may be omitted if it is the same as the package in which the actor is defined.
+Here, `message-type` must match the message type used in the mailbox specification, and `type` must give the base type of the mailbox.
+The `type` parameter can be fully-qualified, as in the example, if it is defined in another package.
+If it is defined in the same pacakge, it can be a bare identifier.
 
 The Mailbox type of a simple mailbox has a `C` field giving the channel that will carry the messages.
 When building an actor, setting this field to a channel used by another actor instances will cause the actors to both read from the same channel, with the result that any message sent will reach only one of the waiting actors.
@@ -239,10 +239,78 @@ In the example above, the OrderCompleted mailbox is enabled only after an order 
 
 The `ticker` kind generates a mailbox that embeds a `time.Ticker`.
 There are no Mailbox or Tx types for this mailbox.
+They are defined like this:
+
+```yaml
+mailboxes:
+  Ticker:
+    kind: ticker
+```
+
+although this will seldom be required, as `github.com/djmitche/thespian/mailbox.Ticker` already implements this type.
+
+They are used in an actor like this:
+
+```yaml
+actors:
+  SomeActor:
+    mailboxes:
+      flush:
+        kind: ticker
+        type: github.com/djmitche/thespian/mailbox.Ticker
+```
 
 When the actor starts, the ticker is disabled.
 The ticker can be started with `rx.<mailboxName>.Reset(dur)`, and stopped with `rx.<mailboxName>.Stop()`.
 On each tick, the `handleMailboxName(t time.Time)` method will be called.
+
+#### RPC Mailboxes
+
+Actors can _only_ communicate by passing messages, but practically we often want to call a method on an actor, either to get some data or for a side-effect.
+The `rpc` mailbox kind allows this.
+They are defined like this:
+
+```yaml
+mailboxes:
+  FooBarRPC:
+    kind: rpc
+    request-type: Foo
+    response-type: some.path/to/Bar
+```
+
+where the request- and response-type are specified as path-qualified type names as above.
+NOTE: both request and response types are copied, so they should be "reference types", such as struct pointers or slices.
+
+They are used in an actor like this:
+
+```yaml
+actors:
+  SomeActor:
+    mailboxes:
+      fooToBar:
+      kind: rpc
+      type: FooBarRPC
+      request-type: Foo
+      response-type: some.path/to/barstuff.Bar
+```
+
+Calling the tx method for an RPC mailbox sends the request to the actor, then waits for a response using a dedicated channel:
+
+```go
+  bar, err := someActor.FooToBar(ctx, Foo{ .. })
+```
+
+When the context is done (cancelled or deadline-exceeded), the result will be `nil` and the result of `Context.Err()`.
+
+The actor implementation looks just like a function taking and returning the request and response types:
+
+```
+func (a *someActor) handleFooToBar(ctx context.Context, req Foo) barstuff.Bar {
+    // ...
+}
+```
+
+the implementation should cancel any long-running operations when `ctx` is done.
 
 ## Supervision
 
